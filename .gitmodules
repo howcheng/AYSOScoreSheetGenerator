@@ -1,0 +1,3 @@
+[submodule "StandingsGoogleSheetsHelper"]
+	path = StandingsGoogleSheetsHelper
+	url = https://github.com/howcheng/StandingsGoogleSheetsHelper
