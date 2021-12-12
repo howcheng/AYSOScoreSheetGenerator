@@ -3,7 +3,21 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31912.275
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AYSOScoreSheetGenerator", "AYSOScoreSheetGenerator\AYSOScoreSheetGenerator.csproj", "{94DC4CFB-C5DA-4CB3-A6C9-D9AFFA66238D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AYSOScoreSheetGenerator", "AYSOScoreSheetGenerator\AYSOScoreSheetGenerator.csproj", "{94DC4CFB-C5DA-4CB3-A6C9-D9AFFA66238D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "submodules", "submodules", "{7B1D6A69-9B23-470A-98E9-EF16163987F4}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StandingsGoogleSheetsHelper", "StandingsGoogleSheetsHelper\src\StandingsGoogleSheetsHelper.csproj", "{C6C73CE1-C9AA-4123-9AB2-339FB2DB16CE}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GoogleSheetsHelper", "StandingsGoogleSheetsHelper\GoogleSheetsHelper\src\GoogleSheetsHelper.csproj", "{7F43D680-F11F-4F62-9D37-07E97637E2C0}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AYSOScoreSheetGenerator.Services", "src\AYSOScoreSheetGenerator.Services\AYSOScoreSheetGenerator.Services.csproj", "{A7DAD4CA-C9B5-4A5C-B6B7-7F4FDD632932}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AYSOScoreSheetGenerator.Objects", "src\AYSOScoreSheetGenerator.Objects\AYSOScoreSheetGenerator.Objects.csproj", "{06E2A936-A4E8-4843-9F7C-AA2814ABDC9A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{A1E4E64E-9C17-4C24-B1E8-F91F9B1BE117}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AYSOScoreSheetGenerator.UnitTests", "tests\AYSOScoreSheetGenerator.UnitTests\AYSOScoreSheetGenerator.UnitTests.csproj", "{EAD539AF-0727-4F19-AD17-14A159029EBF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,9 +29,34 @@ Global
 		{94DC4CFB-C5DA-4CB3-A6C9-D9AFFA66238D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{94DC4CFB-C5DA-4CB3-A6C9-D9AFFA66238D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{94DC4CFB-C5DA-4CB3-A6C9-D9AFFA66238D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C6C73CE1-C9AA-4123-9AB2-339FB2DB16CE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C6C73CE1-C9AA-4123-9AB2-339FB2DB16CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C6C73CE1-C9AA-4123-9AB2-339FB2DB16CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C6C73CE1-C9AA-4123-9AB2-339FB2DB16CE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7F43D680-F11F-4F62-9D37-07E97637E2C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7F43D680-F11F-4F62-9D37-07E97637E2C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7F43D680-F11F-4F62-9D37-07E97637E2C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7F43D680-F11F-4F62-9D37-07E97637E2C0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A7DAD4CA-C9B5-4A5C-B6B7-7F4FDD632932}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A7DAD4CA-C9B5-4A5C-B6B7-7F4FDD632932}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A7DAD4CA-C9B5-4A5C-B6B7-7F4FDD632932}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A7DAD4CA-C9B5-4A5C-B6B7-7F4FDD632932}.Release|Any CPU.Build.0 = Release|Any CPU
+		{06E2A936-A4E8-4843-9F7C-AA2814ABDC9A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{06E2A936-A4E8-4843-9F7C-AA2814ABDC9A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{06E2A936-A4E8-4843-9F7C-AA2814ABDC9A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{06E2A936-A4E8-4843-9F7C-AA2814ABDC9A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EAD539AF-0727-4F19-AD17-14A159029EBF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EAD539AF-0727-4F19-AD17-14A159029EBF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EAD539AF-0727-4F19-AD17-14A159029EBF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EAD539AF-0727-4F19-AD17-14A159029EBF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{C6C73CE1-C9AA-4123-9AB2-339FB2DB16CE} = {7B1D6A69-9B23-470A-98E9-EF16163987F4}
+		{7F43D680-F11F-4F62-9D37-07E97637E2C0} = {7B1D6A69-9B23-470A-98E9-EF16163987F4}
+		{EAD539AF-0727-4F19-AD17-14A159029EBF} = {A1E4E64E-9C17-4C24-B1E8-F91F9B1BE117}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {FC667AFC-6E34-4BD4-A43C-EE70AEB7A889}
