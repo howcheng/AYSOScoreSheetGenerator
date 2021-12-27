@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using AYSOScoreSheetGenerator.Objects;
+﻿using AYSOScoreSheetGenerator.Objects;
 using GoogleSheetsHelper;
 using Microsoft.Extensions.Options;
 

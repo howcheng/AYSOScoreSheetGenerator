@@ -29,7 +29,7 @@ namespace AYSOScoreSheetGenerator.Services
 	}
 
 	/// <summary>
-	/// Base class for classes that create a <see cref="Request"/> to build a column that applies an adjustment to the game points (e.g., referee or volunteer points); a new instance should be created for every round of games
+	/// Base class for classes that create a <see cref="Request"/> to build a column that applies an adjustment to the game points (e.g., referee or volunteer points)
 	/// </summary>
 	public abstract class PointsAdjustmentRequestCreator : StandingsRequestCreator, IStandingsRequestCreator
 	{
@@ -69,7 +69,7 @@ namespace AYSOScoreSheetGenerator.Services
 	}
 
 	/// <summary>
-	/// Creates a <see cref="Request"/> for building the column for referee points; a new instance should be created for every round of games
+	/// Creates a <see cref="Request"/> for building the column for referee points
 	/// </summary>
 	public class RefPointsRequestCreator : PointsAdjustmentRequestCreator
 	{
@@ -79,7 +79,7 @@ namespace AYSOScoreSheetGenerator.Services
 	}
 
 	/// <summary>
-	/// Creates a <see cref="Request"/> for building the column for volunteer points; a new instance should be created for every round of games
+	/// Creates a <see cref="Request"/> for building the column for volunteer points
 	/// </summary>
 	public class VolunteerPointsRequestCreator : PointsAdjustmentRequestCreator
 	{
@@ -89,7 +89,7 @@ namespace AYSOScoreSheetGenerator.Services
 	}
 
 	/// <summary>
-	/// Creates a <see cref="Request"/> for building the column for sportsmanship points; a new instance should be created for every round of games
+	/// Creates a <see cref="Request"/> for building the column for sportsmanship points
 	/// </summary>
 	public class SportsmanshipPointsRequestCreator : PointsAdjustmentRequestCreator
 	{
@@ -99,7 +99,7 @@ namespace AYSOScoreSheetGenerator.Services
 	}
 
 	/// <summary>
-	/// Creates a <see cref="Request"/> for building the column for points deductions; a new instance should be created for every round of games
+	/// Creates a <see cref="Request"/> for building the column for points deductions
 	/// </summary>
 	public class PointsDeductionPointsRequestCreator : PointsAdjustmentRequestCreator
 	{

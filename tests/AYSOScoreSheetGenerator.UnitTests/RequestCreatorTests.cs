@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using AutoFixture;
 using AYSOScoreSheetGenerator.Services;
 using Google.Apis.Sheets.v4.Data;
@@ -9,18 +8,8 @@ using Xunit;
 
 namespace AYSOScoreSheetGenerator.UnitTests
 {
-	public class RequestCreatorTests
+	public class RequestCreatorTests : BaseTest
 	{
-		private DivisionSheetHelper CreateDivisionSheetHelper()
-		{
-			string[] standingsHeaders = new[] { Constants.HDR_GAMES_PLAYED, Constants.HDR_NUM_WINS, Constants.HDR_NUM_LOSSES, Constants.HDR_NUM_DRAWS, Constants.HDR_GAME_PTS, Constants.HDR_REF_PTS, Constants.HDR_VOL_PTS, Constants.HDR_TOTAL_PTS };
-			List<string> allHeaders = new List<string> { Constants.HDR_HOME_TEAM, Constants.HDR_HOME_GOALS, Constants.HDR_AWAY_GOALS, Constants.HDR_AWAY_TEAM };
-			allHeaders.AddRange(standingsHeaders);
-
-			DivisionSheetHelper helper = new DivisionSheetHelper(allHeaders, standingsHeaders);
-			return helper;
-		}
-
 		[Fact]
 		public void TestTotalPointsRequestCreator()
 		{
@@ -56,6 +45,8 @@ namespace AYSOScoreSheetGenerator.UnitTests
 		[InlineData(false, 2)]
 		public void TestPointsAdjustmentRequestCreator(bool valueIsCumulative, int roundNum)
 		{
+			// in the second round the formula must account for the value from the first round
+
 			DivisionSheetHelper helper = CreateDivisionSheetHelper();
 			IServiceProvider provider = new ServiceCollection()
 				.AddSingleton<StandingsSheetHelper>(helper)
@@ -84,11 +75,13 @@ namespace AYSOScoreSheetGenerator.UnitTests
 			string expectedFormula;
 			if (valueIsCumulative)
 			{
+				// when the value is cumulative, then you have to use the value from the previous round if there are no points entered in the current round
 				string elseValue = roundNum == 1 ? "0" : $"{helper.RefPointsColumnName}{config.LastRoundStartRowNum}";
 				expectedFormula = $"=IF({refPtsCell}=\"\", {elseValue}, {refPtsCell})";
 			}
 			else
 			{
+				// when the value is not cumulative, then you have to add the value from the previous round (when round > 1)
 				expectedFormula = $"={refPtsCell}";
 				if (roundNum > 1)
 					expectedFormula += $"+{helper.RefPointsColumnName}{config.LastRoundStartRowNum}";

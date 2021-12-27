@@ -90,7 +90,12 @@ namespace AYSOScoreSheetGenerator.Services
 		{
 		}
 
-		protected override Task<Sheet> SetUpSheet() => SetUpSheet(Configuration.RefPointsSheetName, Configuration.RefPointsValueIsCumulative);
+		protected override async Task<Sheet> SetUpSheet()
+		{
+			if (Configuration.RefPointsSheetConfiguration == null)
+				throw new InvalidOperationException("No configuration object found for the referee points sheet");
+			return await SetUpSheet(Configuration.RefPointsSheetConfiguration.SheetName, Configuration.RefPointsSheetConfiguration.ValueIsCumulative);
+		}
 	}
 
 	/// <summary>
@@ -102,7 +107,12 @@ namespace AYSOScoreSheetGenerator.Services
 		{
 		}
 
-		protected override Task<Sheet> SetUpSheet() => SetUpSheet(Configuration.VolunteerPointsSheetName, Configuration.VolunteerPointsValueIsCumulative);
+		protected override async Task<Sheet> SetUpSheet()
+		{
+			if (Configuration.VolunteerPointsSheetConfiguration == null)
+				throw new InvalidOperationException("No configuration object found for the volunteer points sheet");
+			return await SetUpSheet(Configuration.VolunteerPointsSheetConfiguration.SheetName, Configuration.VolunteerPointsSheetConfiguration.ValueIsCumulative);
+		}
 	}
 
 	/// <summary>
@@ -114,7 +124,12 @@ namespace AYSOScoreSheetGenerator.Services
 		{
 		}
 
-		protected override Task<Sheet> SetUpSheet() => SetUpSheet(Configuration.SportsmanshipPointsSheetName, Configuration.SportsmanshipPointsValueIsCumulative);
+		protected override async Task<Sheet> SetUpSheet()
+		{
+			if (Configuration.SportsmanshipPointsSheetConfiguration == null)
+				throw new InvalidOperationException("No configuration object found for the sportsmanship points sheet");
+			return await SetUpSheet(Configuration.SportsmanshipPointsSheetConfiguration.SheetName, Configuration.SportsmanshipPointsSheetConfiguration.ValueIsCumulative);
+		}
 	}
 
 	/// <summary>
@@ -126,6 +141,11 @@ namespace AYSOScoreSheetGenerator.Services
 		{
 		}
 
-		protected override Task<Sheet> SetUpSheet() => SetUpSheet(Configuration.PointsDeductionSheetName, Configuration.PointsDeductionValueIsCumulative);
+		protected override async Task<Sheet> SetUpSheet()
+		{
+			if (Configuration.PointsDeductionSheetConfiguration == null)
+				throw new InvalidOperationException("No configuration object found for the points deduction sheet");
+			return await SetUpSheet(Configuration.PointsDeductionSheetConfiguration.SheetName, Configuration.PointsDeductionSheetConfiguration.ValueIsCumulative);
+		}
 	}
 }

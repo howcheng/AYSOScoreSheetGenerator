@@ -30,7 +30,7 @@ namespace AYSOScoreSheetGenerator.UnitTests
 			ScoreSheetConfiguration config = new ScoreSheetConfiguration
 			{
 				Divisions = new[] { "10U Boys", "10U Girls" },
-				RefPointsSheetName = f.Create<string>(),
+				RefPointsSheetConfiguration = f.Create<RefPointsSheetConfiguration>(),
 			};
 			const string PROGRAM_NAME = "Core season";
 			const string OTHER_PROGRAM_NAME = "Other";
@@ -77,7 +77,7 @@ namespace AYSOScoreSheetGenerator.UnitTests
 			RefPointsSheetService service = new RefPointsSheetService(mockClient.Object, Options.Create(config));
 			await service.BuildSheet(divisionTeams);
 
-			Assert.Equal(config.RefPointsSheetName, sheetName); // confirm that name of sheet was changed
+			Assert.Equal(config.RefPointsSheetConfiguration.SheetName, sheetName); // confirm that name of sheet was changed
 			Assert.NotNull(appendRequests);
 			Assert.Equal(config.Divisions.Count(), appendRequests.Count); // there should be one AppendRequest per division
 

@@ -16,10 +16,6 @@ namespace AYSOScoreSheetGenerator.Objects
 		/// </summary>
 		public string? DivisionName { get; set; }
 		/// <summary>
-		/// A collection of column headers to use for the standings table
-		/// </summary>
-		public IEnumerable<string>? StandingsTableColumnHeaders { get; set; } = null;
-		/// <summary>
 		/// For divisions with an odd number of teams, the odd team out can either have a bye week (i.e., no game) or have a "friendly" (scrimmage) against another team which won't count for points
 		/// </summary>
 		public bool HasFriendlyGamesEachRound { get; set; }

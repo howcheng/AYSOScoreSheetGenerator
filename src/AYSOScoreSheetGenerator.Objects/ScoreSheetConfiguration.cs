@@ -52,29 +52,66 @@ namespace AYSOScoreSheetGenerator.Objects
 		public IEnumerable<DateTime> GameDates { get; set; } = new List<DateTime>();
 
 		/// <summary>
-		/// The name of the sheet for entering referee points (default: "Ref Pts", set to null if you don't need a sheet)
+		/// The number of games in a season
 		/// </summary>
-		public string RefPointsSheetName { get; set; } = "Ref Pts";
+		public int TotalNumberOfRounds { get => GameDates.Count(); }
 
 		/// <summary>
-		/// The name of the sheet for entering volunteer points (default: "Vol Pts", set to null if you don't need a sheet)
+		/// A collection of configuration values for sheets for entering values that can affect game points (e.g., referee or volunteer)
 		/// </summary>
-		public string VolunteerPointsSheetName { get; set; } = "Volunteer Pts";
+		private IList<PointsAdjustmentSheetConfiguration> _pointsAdjustmentSheetConfigurations = new List<PointsAdjustmentSheetConfiguration>();
 
 		/// <summary>
-		/// The name of the sheet for entering sportsmanship points (default: "Sptship Pts", set to null if you don't need a sheet)
+		/// The configuration values for the referee points sheet
 		/// </summary>
-		public string SportsmanshipPointsSheetName { get; set; } = "Sptship Pts";
+		public RefPointsSheetConfiguration? RefPointsSheetConfiguration
+		{
+			get => (RefPointsSheetConfiguration?)_pointsAdjustmentSheetConfigurations.SingleOrDefault(x => x.Type == PointsAdjustmentSheetType.Referee);
+			set
+			{
+				if (value != null)
+					_pointsAdjustmentSheetConfigurations.Add(value);
+			}
+		}
 
 		/// <summary>
-		/// The name of the sheet for entering points deductions (default: "Pts Deductions", set to null if you don't need a sheet)
+		/// The configuration values for the volunteer points sheet
 		/// </summary>
-		public string PointsDeductionSheetName { get; set; } = "Pts Deductions";
+		public VolunteerPointsSheetConfiguration? VolunteerPointsSheetConfiguration
+		{
+			get => (VolunteerPointsSheetConfiguration?)_pointsAdjustmentSheetConfigurations.SingleOrDefault(x => x.Type == PointsAdjustmentSheetType.Volunteer);
+			set
+			{
+				if (value != null)
+					_pointsAdjustmentSheetConfigurations.Add(value);
+			}
+		}
 
-		public bool RefPointsValueIsCumulative { get; set; }
-		public bool VolunteerPointsValueIsCumulative { get; set; }
-		public bool SportsmanshipPointsValueIsCumulative { get; set; }
-		public bool PointsDeductionValueIsCumulative { get; set; }
+		/// <summary>
+		/// The configuration values for the sportsmanship points sheet
+		/// </summary>
+		public SportsmanshipPointsSheetConfiguration? SportsmanshipPointsSheetConfiguration
+		{
+			get => (SportsmanshipPointsSheetConfiguration?)_pointsAdjustmentSheetConfigurations.SingleOrDefault(x => x.Type == PointsAdjustmentSheetType.Sportsmanship);
+			set
+			{
+				if (value != null)
+					_pointsAdjustmentSheetConfigurations.Add(value);
+			}
+		}
+
+		/// <summary>
+		/// The configuration values for the points deduction sheet
+		/// </summary>
+		public PointsDeductionSheetConfiguration? PointsDeductionSheetConfiguration
+		{
+			get => (PointsDeductionSheetConfiguration?)_pointsAdjustmentSheetConfigurations.SingleOrDefault(x => x.Type == PointsAdjustmentSheetType.Deduction);
+			set
+			{
+				if (value != null)
+					_pointsAdjustmentSheetConfigurations.Add(value);
+			}
+		}
 
 		/// <summary>
 		/// The background color for the header row for the teams sheet (default: #999999, or medium gray)

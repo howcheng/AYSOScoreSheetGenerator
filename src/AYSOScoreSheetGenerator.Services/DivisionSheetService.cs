@@ -55,6 +55,7 @@ namespace AYSOScoreSheetGenerator.Services
 			for (int i = 0; i < NUM_ROUNDS; i++)
 			{
 				List<GoogleSheetRow> newRows = new List<GoogleSheetRow>();
+				List<AppendRequest> appendRequests = new List<AppendRequest>();
 				List<Request> updateSheetRequests = new List<Request>();
 				List<UpdateRequest> updateDataRequests = new List<UpdateRequest>();
 
@@ -96,8 +97,8 @@ namespace AYSOScoreSheetGenerator.Services
 					Rows = newRows,
 				};
 
-				startRowIdx += appendRequest.Rows.Count;
-				await SheetsClient.Append(new List<AppendRequest> { appendRequest });
+				startRowIdx += appendRequest.Rows.Count; // on 1st round, this should be 2 because of the round row and the header row
+				appendRequests.Add(appendRequest);
 
 				// build the score entry portion of the round
 
@@ -113,26 +114,30 @@ namespace AYSOScoreSheetGenerator.Services
 					{
 						ForegroundColor = System.Drawing.Color.Red,
 					};
-					int howMany = _helper.GetColumnIndexByHeader(Constants.HDR_AWAY_TEAM) - _helper.GetColumnIndexByHeader(Constants.HDR_HOME_TEAM) + 1;
+					int howMany = _helper.GetColumnIndexByHeader(Constants.HDR_WINNING_TEAM) - _helper.GetColumnIndexByHeader(Constants.HDR_HOME_TEAM) + 1;
 					GoogleSheetRow friendlyRow = new GoogleSheetRow();
 					friendlyRow.AddRange(Enumerable.Repeat(friendlyCell, howMany));
 
 					updateDataRequests.Add(new UpdateRequest(_divisionName)
 					{
-						RowStart = startRowIdx + numGameRows,
+						RowStart = startRowIdx + numGameRows - 1, // -1 because it's the last row of games
 						ColumnStart = _helper.GetColumnIndexByHeader(Constants.HDR_HOME_TEAM),
 						Rows = new List<GoogleSheetRow> { friendlyRow },
 					});
 				}
 
 				// game winner column
-				updateSheetRequests.Add(CreateDetermineGameWinnerRequest(startRowIdx, numGameRows));
+				IStandingsRequestCreator gwRequestCreator = _requestFactory.GetRequestCreator(Constants.HDR_WINNING_TEAM);
+				updateSheetRequests.Add(gwRequestCreator.CreateRequest(SetupRequestCreatorConfig<StandingsRequestCreatorConfig>(teams, startRowIdx, startRowIdx + 2)));
 
 				// standings table
 				IEnumerable<Request> standingsTableRequests = CreateStandingsTableRequests(teams, startRowIdx, numGameRows, i);
 				updateSheetRequests.AddRange(standingsTableRequests);
 
+				// update the sheet!
+				await SheetsClient.Append(appendRequests);
 				await SheetsClient.ExecuteRequests(updateSheetRequests);
+				await SheetsClient.Update(updateDataRequests);
 
 				startRowIdx += numGameRows + 2; // 1 for round header, 1 for column headers
 			}
@@ -164,13 +169,6 @@ namespace AYSOScoreSheetGenerator.Services
 			return requests;
 		}
 
-		private Request CreateDetermineGameWinnerRequest(int startRowIdx, int numGameRows)
-		{
-			int rowNum = startRowIdx + 1;
-			return RequestCreator.CreateRepeatedSheetFormulaRequest(_sheetId, startRowIdx, _helper.GetColumnIndexByHeader(Constants.HDR_WINNING_TEAM), numGameRows,
-				_formulaGenerator.GetGameWinnerFormula(rowNum));
-		}
-
 		private bool OddNumberOfTeams(IList<Team> teams) => (teams.Count % 2) == 1;
 
 		private IEnumerable<Request> CreateStandingsTableRequests(IList<Team> teams, int startRowIdx, int numGameRows, int roundNum)
@@ -190,6 +188,14 @@ namespace AYSOScoreSheetGenerator.Services
 			if (_divisionConfig.HasFriendlyGamesEachRound)
 				endGamesRowNum -= 1; // last row will be for the friendly and won't count for points
 
+			// does the current round count for standings?
+			bool roundCountsForStandings = true;
+			if (_divisionConfig.RoundsThatCountTowardsStandings < Configuration.GameDates.Count())
+			{
+				int numRoundsThatDontCount = Configuration.TotalNumberOfRounds - _divisionConfig.RoundsThatCountTowardsStandings;
+				roundCountsForStandings = roundNum > numRoundsThatDontCount;
+			}
+
 			int lastRoundStartRowNum = roundNum == 1 ? 0 : startGamesRowNum - numGameRows - 2; // this is for adding the values from last round; -2 for the round divider row and the column headers
 
 			foreach (string hdr in _helper.StandingsTableColumns)
@@ -201,64 +207,66 @@ namespace AYSOScoreSheetGenerator.Services
 				Request request;
 				if (requestCreator is ScoreBasedStandingsRequestCreator)
 				{
-					ScoreBasedStandingsRequestCreatorConfig config = new ScoreBasedStandingsRequestCreatorConfig
-					{
-						SheetId = _sheetId,
-						FirstTeamsSheetCell = teams.First().TeamSheetCell,
-						NumTeams = teams.Count,
-						SheetStartRowIndex = startRowIdx,
-						StartGamesRowNum = startGamesRowNum,
-						EndGamesRowNum = endGamesRowNum,
-						LastRoundStartRowNum = lastRoundStartRowNum,
-					};
+					ScoreBasedStandingsRequestCreatorConfig config = SetupRequestCreatorConfig<ScoreBasedStandingsRequestCreatorConfig>(teams, startRowIdx, startGamesRowNum, endGamesRowNum, lastRoundStartRowNum);
+					config.RoundCountsForStandings = roundCountsForStandings;
 					request = requestCreator.CreateRequest(config);
 				}
 				else if (requestCreator is PointsAdjustmentRequestCreator)
 				{
-					PointsAdjustmentRequestCreatorConfig config = new PointsAdjustmentRequestCreatorConfig
-					{
-						SheetId = _sheetId,
-						FirstTeamsSheetCell = teams.First().TeamSheetCell,
-						NumTeams = teams.Count,
-						SheetStartRowIndex = startRowIdx,
-						StartGamesRowNum = startGamesRowNum,
-						EndGamesRowNum = endGamesRowNum,
-						LastRoundStartRowNum = lastRoundStartRowNum,
-						RoundNumber = roundNum,
-						SheetName = _divisionName,
-					};
+					PointsAdjustmentRequestCreatorConfig config = SetupRequestCreatorConfig<PointsAdjustmentRequestCreatorConfig>(teams, startRowIdx, startGamesRowNum, endGamesRowNum, lastRoundStartRowNum);
+					config.RoundNumber = roundNum;
+					config.SheetName = _divisionName;
+
+					PointsAdjustmentSheetConfiguration? sheetConfig = null;
 					switch (requestCreator.ColumnHeader)
 					{
 						case Constants.HDR_REF_PTS:
-							config.ValueIsCumulative = Configuration.RefPointsValueIsCumulative;
+							sheetConfig = Configuration.RefPointsSheetConfiguration;
 							break;
 						case Constants.HDR_VOL_PTS:
-							config.ValueIsCumulative = Configuration.VolunteerPointsValueIsCumulative;
+							sheetConfig = Configuration.VolunteerPointsSheetConfiguration;
 							break;
 						case Constants.HDR_SPORTSMANSHIP_PTS:
-							config.ValueIsCumulative = Configuration.SportsmanshipPointsValueIsCumulative;
+							sheetConfig = Configuration.SportsmanshipPointsSheetConfiguration;
 							break;
 						case Constants.HDR_PTS_DEDUCTION:
-							config.ValueIsCumulative = Configuration.PointsDeductionValueIsCumulative;
+							sheetConfig = Configuration.PointsDeductionSheetConfiguration;
 							break;
 					}
+					if (sheetConfig == null)
+						throw new InvalidOperationException($"Could not find the configuration for the specified sheet ({requestCreator.ColumnHeader})");
+
+					config.ValueIsCumulative = sheetConfig.ValueIsCumulative;
 					request = requestCreator.CreateRequest(config);
 				}
 				else
 				{
-					StandingsRequestCreatorConfig config = new StandingsRequestCreatorConfig
-					{
-						SheetId = _sheetId,
-						NumTeams = teams.Count,
-						SheetStartRowIndex = startRowIdx,
-						StartGamesRowNum = startGamesRowNum,
-					};
+					StandingsRequestCreatorConfig config = SetupRequestCreatorConfig<StandingsRequestCreatorConfig>(teams, startRowIdx, startGamesRowNum);
 					request = requestCreator.CreateRequest(config);
 				}
 				requests.Add(request);
 			}
 
 			return requests;
+		}
+
+		private T SetupRequestCreatorConfig<T>(IList<Team> teams, int startRowIdx, int startGamesRowNum, int endGamesRowNum = 0, int lastRoundStartRowNum = 0) where T : StandingsRequestCreatorConfig
+		{
+			T config = Activator.CreateInstance<T>();
+			config.SheetId = _sheetId;
+			config.NumTeams = teams.Count;
+			config.SheetStartRowIndex = startRowIdx;
+			config.StartGamesRowNum = startGamesRowNum;
+
+			ScoreBasedStandingsRequestCreatorConfig? config2 = config as ScoreBasedStandingsRequestCreatorConfig;
+			if (config2 != null)
+			{
+				config2.FirstTeamsSheetCell = teams.First().TeamSheetCell;
+				config2.EndGamesRowNum = endGamesRowNum;
+				config2.LastRoundStartRowNum = lastRoundStartRowNum;
+			}
+
+			return config;
 		}
 
 		public bool IsApplicableToDivision(string divisionName) => divisionName == _divisionName;
