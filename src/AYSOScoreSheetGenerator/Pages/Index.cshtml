@@ -1,10 +1,58 @@
 ﻿@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+	ViewBag.Title = "AYSO Score Sheet Generator";
+}
+@section Styles {
+    <style type="text/css">
+        .ui-state-highlight, .ui-widget-content .ui-state-highlight, .ui-widget-header .ui-state-highlight { border-color: darkgreen; }
+    </style>
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+@*<div class="text-center">
+	<h1 class="display-4">@ViewBag.Title</h1>
 </div>
+<p>
+	This website creates a Google Sheets document for entering game scores for AYSO Core seasons. Why not use the one that comes with the SportsConnect website?
+	Because that doesn't allow you to adjust the point totals with referee/volunteer points or deductions for red/yellow cards.
+</p>
+<p>
+	Instead of forcing regions to pay for a commercial service, we decided to build our own system instead.
+</p>*@
+
+<div id="root"></div>
+<script type="text/babel" src="@Url.Content("~/js/App.jsx")"></script>
+<script type="text/javascript">
+    // allow the jQuery datepicker to select multiple dates: https://stackoverflow.com/questions/1452066/jquery-ui-datepicker-multiple-date-selections
+    var dates = new Array();
+
+    function addDate(date) {
+        if ($.inArray(date, dates) < 0) {
+            dates.push(date);
+            dates.sort();
+        }
+    }
+
+    function removeDate(index) {
+        dates.splice(index, 1);
+    }
+
+    // Adds a date if we don't have it yet, else remove it
+    function addOrRemoveDate(date) {
+        var index = $.inArray(date, dates);
+        if (index >= 0) 
+            removeDate(index);
+        else 
+            addDate(date);
+    }
+    //Finds y value of given object
+    function findPos(obj) {
+        var curtop = 0;
+        if (obj.offsetParent) {
+            do {
+                curtop += obj.offsetTop;
+            } while (obj = obj.offsetParent);
+        return [curtop];
+        }
+    }
+</script>
