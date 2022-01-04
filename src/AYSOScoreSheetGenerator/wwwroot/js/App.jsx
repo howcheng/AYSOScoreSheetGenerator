@@ -80,16 +80,16 @@ class App extends React.Component {
 
 	handleSubmit() {
 		// massage the data to match our POCOs
-		const gameDatesArr = this.state.spreadsheetConfiguration.GameDates.split(', ');
+		const gameDatesArr = this.state.spreadsheetConfiguration.GameDates.split(', ').map((date) => $.datepicker.formatDate('yy-mm-ddT00:00:00Z', $.datepicker.parseDate('m/d/yy', date)));
 
 		const divisionNames = Object.keys(this.state.divisions);
 		const divisionConfigurations = [];
 		const divisions = {};
 		divisionNames.map((divisionName) => {
 			// teams
-			const divisionTeams = divisions[divisionName].teams;
+			const divisionTeams = this.state.divisions[divisionName].teams;
 			divisions[divisionName] = [];
-			teams.map((team) => {
+			divisionTeams.map((team) => {
 				divisions[divisionName].push({
 					teamName: team.name,
 					divisionName: divisionName,
@@ -118,7 +118,7 @@ class App extends React.Component {
 			const config = {
 				divisionName: divisionName,
 				hasFriendlyGamesEachRound: String(true) === divisionConfig[`HasFriendlyGamesEachRound-${formFriendlyName}`],
-				roundsThatCountTowardsStandings: gameDatesArr.length - (divisionConfig.PracticeRounds ?? 0),
+				roundsThatCountTowardsStandings: gameDatesArr.length - (typeof (divisionConfig.PracticeRounds) === "undefined" ? 0 : divisionConfig.PracticeRounds),
 				programNameForOtherRegions: otherProgramName,
 				includeOtherRegionsInStandings: String(true) === divisionConfig[`IncludeOtherRegionsInStandings-${formFriendlyName}`]
 			};
@@ -163,9 +163,13 @@ class App extends React.Component {
 			divisions: divisions,
 			spreadsheetConfiguration: scoreSheetConfiguration
 		};
-		const xhr = new XMLHttpRequest();
-		xhr.open('post', '/api/Services', true);
-		xhr.send(JSON.stringify(data));
+		$.ajax({
+			type: 'POST',
+			url: '/api/Services',
+			data: JSON.stringify(data),
+			contentType: 'application/json',
+			dataType: 'json'
+		});
 
 		this.setState({ formSubmitted: true });
 	}
@@ -175,8 +179,14 @@ class App extends React.Component {
 			return (
 				<div className="container-fluid">
 					<h1 className="display-1 text-center">Working...</h1>
-					<div className="d-flex justify-content-center">
-						<div className="spinner-border" role="status"></div>
+					<div className="row">
+						<div className="col-12 justify-content-center">
+							<div className="spinner-border" role="status"></div>
+							<textarea id="log-messages" disabled readOnly className="form-control" style={{ width: "70%", height: "50%", margin: "0 auto" }}></textarea>
+						</div>
+						<div className="col-12">
+							<p id="spreadsheet-link-para" style={{ display: "none" }}><a id="spreadsheet-link" target="_blank">View spreadsheet</a></p>
+						</div>
 					</div>
 				</div>
 			);

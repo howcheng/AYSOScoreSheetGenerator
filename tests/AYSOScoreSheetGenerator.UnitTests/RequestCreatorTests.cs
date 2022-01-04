@@ -5,11 +5,16 @@ using Google.Apis.Sheets.v4.Data;
 using Microsoft.Extensions.DependencyInjection;
 using StandingsGoogleSheetsHelper;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace AYSOScoreSheetGenerator.UnitTests
 {
 	public class RequestCreatorTests : BaseTest
 	{
+		public RequestCreatorTests(ITestOutputHelper outputHelper) : base(outputHelper)
+		{
+		}
+
 		[Fact]
 		public void TestTotalPointsRequestCreator()
 		{

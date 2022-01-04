@@ -1,6 +1,7 @@
 ﻿using AYSOScoreSheetGenerator.Objects;
 using Google.Apis.Sheets.v4.Data;
 using GoogleSheetsHelper;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using StandingsGoogleSheetsHelper;
 
@@ -25,33 +26,38 @@ namespace AYSOScoreSheetGenerator.Services
 		private string _divisionName;
 		private DivisionConfiguration _divisionConfig;
 		private readonly DivisionSheetHelper _helper;
-		private readonly FormulaGenerator _formulaGenerator;
 		private readonly StandingsRequestCreatorFactory _requestFactory;
 
 		private int? _sheetId;
 		private int _numTeamsThisRegion;
 		private int _numTeamsOtherRegions;
 
-		public DivisionSheetService(string divisionName, Sheet divisionSheet, FormulaGenerator formGen, StandingsRequestCreatorFactory requestFactory, ISheetsClient sheetsClient, IOptions<ScoreSheetConfiguration> configOptions)
-			: base(sheetsClient, configOptions)
+		public DivisionSheetService(string divisionName, DivisionSheetHelper helper, StandingsRequestCreatorFactory requestFactory
+			, ISheetsClient sheetsClient, IOptionsSnapshot<ScoreSheetConfiguration> configOptions, ILogger<DivisionSheetService> log)
+			: base(sheetsClient, configOptions, log)
 		{
 			_divisionName = divisionName;
 			_divisionConfig = configOptions.Value.DivisionConfigurations.Single(x => x.DivisionName == _divisionName);
-			_helper = (DivisionSheetHelper)formGen.SheetHelper;
-			_formulaGenerator = formGen;
+			_helper = helper;
 			_requestFactory = requestFactory;
-
-			_sheetId = divisionSheet.Properties.SheetId;
 		}
 
 		public async Task BuildSheet(IList<Team> teams)
 		{
+			string sheetName = _divisionName;
+			if (Configuration.TeamNameTransformer != null)
+				sheetName = Configuration.TeamNameTransformer(sheetName);
+			Sheet divisionSheet = await SheetsClient.GetOrAddSheet(sheetName);
+			_sheetId = divisionSheet.Properties.SheetId;
+
 			int teamCount = teams.Count;
 			if (!_divisionConfig.IncludeOtherRegionsInStandings)
 				teamCount = teams.Count(x => x.ProgramName != _divisionConfig.ProgramNameForOtherRegions);
 
 			int NUM_ROUNDS = Configuration.GameDates.Count();
 			int startRowIdx = 0;
+			Log.LogInformation("Beginning sheet for {0}", _divisionName);
+
 			for (int i = 0; i < NUM_ROUNDS; i++)
 			{
 				List<GoogleSheetRow> newRows = new List<GoogleSheetRow>();
@@ -138,6 +144,7 @@ namespace AYSOScoreSheetGenerator.Services
 				await SheetsClient.Append(appendRequests);
 				await SheetsClient.ExecuteRequests(updateSheetRequests);
 				await SheetsClient.Update(updateDataRequests);
+				Log.LogInformation("Finished round {0} for {1}", roundNum, _divisionName);
 
 				startRowIdx += numGameRows + 2; // 1 for round header, 1 for column headers
 			}

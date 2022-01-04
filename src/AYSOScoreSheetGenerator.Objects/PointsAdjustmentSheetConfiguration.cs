@@ -29,6 +29,11 @@ namespace AYSOScoreSheetGenerator.Objects
 		/// </summary>
 		public bool ValueIsCumulative { get; set; }
 
+		/// <summary>
+		/// Flag that indicates the values will affect game standings
+		/// </summary>
+		public bool AffectsStandings { get; set; } = true;
+
 		public PointsAdjustmentSheetType Type { get; }
 
 		public PointsAdjustmentSheetConfiguration(PointsAdjustmentSheetType type)

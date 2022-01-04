@@ -9,10 +9,10 @@ using AYSOScoreSheetGenerator.Services;
 using Google.Apis.Sheets.v4.Data;
 using GoogleSheetsHelper;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using Moq;
 using StandingsGoogleSheetsHelper;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace AYSOScoreSheetGenerator.UnitTests
 {
@@ -21,6 +21,10 @@ namespace AYSOScoreSheetGenerator.UnitTests
 		private const string DIVISION = "10U Boys";
 		private const string PROGRAM = "Core season";
 		private const string OTHER_REGION_PROGRAM = "Other region";
+
+		public DivisionSheetServiceTests(ITestOutputHelper outputHelper) : base(outputHelper)
+		{
+		}
 
 		[Flags]
 		public enum TestFlags
@@ -114,6 +118,7 @@ namespace AYSOScoreSheetGenerator.UnitTests
 			mockClient.Setup(x => x.Append(It.IsAny<IList<AppendRequest>>(), It.IsAny<CancellationToken>())).Callback(appendCallback);
 			mockClient.Setup(x => x.Update(It.IsAny<IList<UpdateRequest>>(), It.IsAny<CancellationToken>())).Callback(updateDataCallback);
 			mockClient.Setup(x => x.ExecuteRequests(It.IsAny<IEnumerable<Request>>(), It.IsAny<CancellationToken>())).Callback(updateSheetCallback);
+			mockClient.Setup(x => x.GetOrAddSheet(It.IsAny<string>(), It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<CancellationToken>())).ReturnsAsync(GetDivisionSheet());
 			return mockClient;
 		}
 
@@ -127,6 +132,7 @@ namespace AYSOScoreSheetGenerator.UnitTests
 			FormulaGenerator fg = new FormulaGenerator(helper);
 			ScoreSheetConfiguration config = BuildConfiguration(flags);
 			DivisionConfiguration divisionConfig = config.DivisionConfigurations.Single();
+			
 
 			List<IList<AppendRequest>> appendRequests = new List<IList<AppendRequest>>();
 			Action<IList<AppendRequest>, CancellationToken> appendCallback = (rqs, ct) => appendRequests.Add(rqs);
@@ -134,7 +140,7 @@ namespace AYSOScoreSheetGenerator.UnitTests
 			Action<IEnumerable<Request>, CancellationToken> updateSheetCallback = (rqs, ct) => { };
 			Mock<ISheetsClient> mockClient = GetMockClient(appendCallback, updateDataCallback, updateSheetCallback);
 
-			DivisionSheetService service = new DivisionSheetService(DIVISION, GetDivisionSheet(), fg, GetRequestCreatorFactory(fg), mockClient.Object, Options.Create(config));
+			DivisionSheetService service = new DivisionSheetService(DIVISION, helper, GetRequestCreatorFactory(fg), mockClient.Object, GetScoreSheetConfigOptions(config), GetLogger<DivisionSheetService>());
 			IList<Team> teams = CreateTeams(flags);
 			await service.BuildSheet(teams);
 
@@ -182,7 +188,7 @@ namespace AYSOScoreSheetGenerator.UnitTests
 			Action<IEnumerable<Request>, CancellationToken> updateSheetCallback = (rqs, ct) => updateSheetRequests.Add(rqs);
 			Mock<ISheetsClient> mockClient = GetMockClient(appendCallback, updateDataCallback, updateSheetCallback);
 
-			DivisionSheetService service = new DivisionSheetService(DIVISION, GetDivisionSheet(), fg, GetRequestCreatorFactory(fg), mockClient.Object, Options.Create(config));
+			DivisionSheetService service = new DivisionSheetService(DIVISION, helper, GetRequestCreatorFactory(fg), mockClient.Object, GetScoreSheetConfigOptions(config), GetLogger<DivisionSheetService>());
 			IList<Team> teams = CreateTeams(flags);
 			await service.BuildSheet(teams);
 
@@ -271,7 +277,7 @@ namespace AYSOScoreSheetGenerator.UnitTests
 			Action<IEnumerable<Request>, CancellationToken> updateSheetCallback = (rqs, ct) => updateSheetRequests.Add(rqs);
 			Mock<ISheetsClient> mockClient = GetMockClient(appendCallback, updateDataCallback, updateSheetCallback);
 
-			DivisionSheetService service = new DivisionSheetService(DIVISION, GetDivisionSheet(), fg, GetRequestCreatorFactory(fg), mockClient.Object, Options.Create(config));
+			DivisionSheetService service = new DivisionSheetService(DIVISION, helper, GetRequestCreatorFactory(fg), mockClient.Object, GetScoreSheetConfigOptions(config), GetLogger<DivisionSheetService>());
 			IList<Team> teams = CreateTeams(flags);
 			await service.BuildSheet(teams);
 

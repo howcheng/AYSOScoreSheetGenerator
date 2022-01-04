@@ -10,11 +10,16 @@ using GoogleSheetsHelper;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace AYSOScoreSheetGenerator.UnitTests
 {
-	public class TeamListSheetServiceTests
+	public class TeamListSheetServiceTests : BaseTest
 	{
+		public TeamListSheetServiceTests(ITestOutputHelper outputHelper) : base(outputHelper)
+		{
+		}
+
 		[Fact]
 		public async Task CanBuildSheetFromScratch()
 		{
@@ -52,7 +57,7 @@ namespace AYSOScoreSheetGenerator.UnitTests
 
 			mockClient.Setup(x => x.AutoResizeColumn(It.IsAny<string>(), It.IsAny<int>())).ReturnsAsync(0);
 
-			TeamListSheetService service = new TeamListSheetService(mockClient.Object, Options.Create(config));
+			TeamListSheetService service = new TeamListSheetService(mockClient.Object, GetScoreSheetConfigOptions(config), GetLogger<TeamListSheetService>());
 			await service.BuildSheet(divisionTeams);
 
 			Assert.Equal(config.TeamsSheetName, newName); // confirm that name of first sheet was changed
@@ -106,7 +111,7 @@ namespace AYSOScoreSheetGenerator.UnitTests
 			mockClient.Setup(x => x.Append(It.IsAny<IList<AppendRequest>>(), It.IsAny<CancellationToken>()));
 			mockClient.Setup(x => x.AutoResizeColumn(It.IsAny<string>(), It.IsAny<int>())).ReturnsAsync(0);
 
-			TeamListSheetService service = new TeamListSheetService(mockClient.Object, Options.Create(config));
+			TeamListSheetService service = new TeamListSheetService(mockClient.Object, GetScoreSheetConfigOptions(config), GetLogger<TeamListSheetService>());
 			await service.BuildSheet(divisionTeams);
 
 			Assert.Equal(config.TeamsSheetName, newName); // confirm that name of first sheet was changed

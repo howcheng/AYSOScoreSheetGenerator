@@ -1,6 +1,7 @@
 ﻿using AYSOScoreSheetGenerator.Objects;
 using Google.Apis.Sheets.v4.Data;
 using GoogleSheetsHelper;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using StandingsGoogleSheetsHelper;
 
@@ -13,7 +14,8 @@ namespace AYSOScoreSheetGenerator.Services
 	{
 		private string _headerName;
 
-		protected PointsAdjustmentSheetService(string headerName, ISheetsClient sheetsClient, IOptions<ScoreSheetConfiguration> configOptions) : base(sheetsClient, configOptions)
+		protected PointsAdjustmentSheetService(string headerName, ISheetsClient sheetsClient, IOptionsSnapshot<ScoreSheetConfiguration> configOptions, ILogger<PointsAdjustmentSheetService> log)
+			: base(sheetsClient, configOptions, log)
 		{
 			_headerName = headerName;
 		}
@@ -86,7 +88,8 @@ namespace AYSOScoreSheetGenerator.Services
 	/// </summary>
 	public class RefPointsSheetService : PointsAdjustmentSheetService
 	{
-		public RefPointsSheetService(ISheetsClient sheetsClient, IOptions<ScoreSheetConfiguration> configOptions) : base(Constants.HDR_REF_PTS, sheetsClient, configOptions)
+		public RefPointsSheetService(ISheetsClient sheetsClient, IOptionsSnapshot<ScoreSheetConfiguration> configOptions, ILogger<RefPointsSheetService> log) 
+			: base(Constants.HDR_REF_PTS, sheetsClient, configOptions, log)
 		{
 		}
 
@@ -94,6 +97,8 @@ namespace AYSOScoreSheetGenerator.Services
 		{
 			if (Configuration.RefPointsSheetConfiguration == null)
 				throw new InvalidOperationException("No configuration object found for the referee points sheet");
+
+			Log.LogInformation("Beginning the referee points sheet");
 			return await SetUpSheet(Configuration.RefPointsSheetConfiguration.SheetName, Configuration.RefPointsSheetConfiguration.ValueIsCumulative);
 		}
 	}
@@ -103,7 +108,8 @@ namespace AYSOScoreSheetGenerator.Services
 	/// </summary>
 	public class VolunteerPointsSheetService : PointsAdjustmentSheetService
 	{
-		public VolunteerPointsSheetService(ISheetsClient sheetsClient, IOptions<ScoreSheetConfiguration> configOptions) : base(Constants.HDR_VOL_PTS, sheetsClient, configOptions)
+		public VolunteerPointsSheetService(ISheetsClient sheetsClient, IOptionsSnapshot<ScoreSheetConfiguration> configOptions, ILogger<VolunteerPointsSheetService> log) 
+			: base(Constants.HDR_VOL_PTS, sheetsClient, configOptions, log)
 		{
 		}
 
@@ -111,6 +117,8 @@ namespace AYSOScoreSheetGenerator.Services
 		{
 			if (Configuration.VolunteerPointsSheetConfiguration == null)
 				throw new InvalidOperationException("No configuration object found for the volunteer points sheet");
+
+			Log.LogInformation("Beginning the volunteer points sheet");
 			return await SetUpSheet(Configuration.VolunteerPointsSheetConfiguration.SheetName, Configuration.VolunteerPointsSheetConfiguration.ValueIsCumulative);
 		}
 	}
@@ -120,7 +128,8 @@ namespace AYSOScoreSheetGenerator.Services
 	/// </summary>
 	public class SportsmanshipPointsSheetService : PointsAdjustmentSheetService
 	{
-		public SportsmanshipPointsSheetService(ISheetsClient sheetsClient, IOptions<ScoreSheetConfiguration> configOptions) : base(Constants.HDR_SPORTSMANSHIP_PTS, sheetsClient, configOptions)
+		public SportsmanshipPointsSheetService(ISheetsClient sheetsClient, IOptionsSnapshot<ScoreSheetConfiguration> configOptions, ILogger<SportsmanshipPointsSheetService> log) 
+			: base(Constants.HDR_SPORTSMANSHIP_PTS, sheetsClient, configOptions, log)
 		{
 		}
 
@@ -128,6 +137,8 @@ namespace AYSOScoreSheetGenerator.Services
 		{
 			if (Configuration.SportsmanshipPointsSheetConfiguration == null)
 				throw new InvalidOperationException("No configuration object found for the sportsmanship points sheet");
+
+			Log.LogInformation("Beginning the sportsmanship points sheet");
 			return await SetUpSheet(Configuration.SportsmanshipPointsSheetConfiguration.SheetName, Configuration.SportsmanshipPointsSheetConfiguration.ValueIsCumulative);
 		}
 	}
@@ -137,7 +148,8 @@ namespace AYSOScoreSheetGenerator.Services
 	/// </summary>
 	public class PointsDeductionSheetService : PointsAdjustmentSheetService
 	{
-		public PointsDeductionSheetService(ISheetsClient sheetsClient, IOptions<ScoreSheetConfiguration> configOptions) : base(Constants.HDR_PTS_DEDUCTION, sheetsClient, configOptions)
+		public PointsDeductionSheetService(ISheetsClient sheetsClient, IOptionsSnapshot<ScoreSheetConfiguration> configOptions, ILogger<PointsDeductionSheetService> log) 
+			: base(Constants.HDR_PTS_DEDUCTION, sheetsClient, configOptions, log)
 		{
 		}
 
@@ -145,6 +157,8 @@ namespace AYSOScoreSheetGenerator.Services
 		{
 			if (Configuration.PointsDeductionSheetConfiguration == null)
 				throw new InvalidOperationException("No configuration object found for the points deduction sheet");
+
+			Log.LogInformation("Beginning the points deduction sheet");
 			return await SetUpSheet(Configuration.PointsDeductionSheetConfiguration.SheetName, Configuration.PointsDeductionSheetConfiguration.ValueIsCumulative);
 		}
 	}

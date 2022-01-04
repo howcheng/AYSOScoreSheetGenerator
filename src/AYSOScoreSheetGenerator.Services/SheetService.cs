@@ -1,5 +1,6 @@
 ﻿using AYSOScoreSheetGenerator.Objects;
 using GoogleSheetsHelper;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace AYSOScoreSheetGenerator.Services
@@ -11,11 +12,13 @@ namespace AYSOScoreSheetGenerator.Services
 	{
 		protected ISheetsClient SheetsClient { get; }
 		protected ScoreSheetConfiguration Configuration { get; }
+		protected ILogger Log { get; }
 
-		protected SheetService(ISheetsClient sheetsClient, IOptions<ScoreSheetConfiguration> configOptions)
+		protected SheetService(ISheetsClient sheetsClient, IOptionsSnapshot<ScoreSheetConfiguration> configOptions, ILogger log)
 		{
 			SheetsClient = sheetsClient;
 			Configuration = configOptions.Value;
+			Log = log;
 		}
 
 		protected string CreateFormulaForTeamName(Team team) => $"='{Configuration.TeamsSheetName}'!{team.TeamSheetCell}";

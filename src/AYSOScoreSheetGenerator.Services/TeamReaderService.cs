@@ -1,4 +1,5 @@
 ﻿using AYSOScoreSheetGenerator.Objects;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace AYSOScoreSheetGenerator.Services
@@ -10,21 +11,23 @@ namespace AYSOScoreSheetGenerator.Services
 
 	public class TeamReaderService : ITeamReaderService
 	{
-		private readonly ScoreSheetConfiguration _configuration;
+		private readonly ScoreSheetConfiguration _config;
+		private readonly ILogger<TeamReaderService> _log;
 
-		public TeamReaderService(IOptions<ScoreSheetConfiguration> configOptions)
+		public TeamReaderService(IOptionsSnapshot<ScoreSheetConfiguration> options, ILogger<TeamReaderService> log)
 		{
-			_configuration = configOptions.Value;
+			_config = options.Value;
+			_log = log;
 		}
 
 		public IDictionary<string, IList<Team>> GetTeams()
 		{
 			SortedDictionary<string, IList<Team>> teams = new SortedDictionary<string, IList<Team>>();
 
-			if (_configuration.TeamDetailsReportProvider == null)
+			if (_config.TeamDetailsReportProvider == null)
 				throw new InvalidOperationException("No method set to get the SportsConnect Team Details Report");
 
-			Stream stream = _configuration.TeamDetailsReportProvider();
+			Stream stream = _config.TeamDetailsReportProvider();
 			using (stream)
 			using (StreamReader teamsReader = new StreamReader(stream))
 			{
@@ -47,21 +50,21 @@ namespace AYSOScoreSheetGenerator.Services
 					string[] lineArr = line.Split(',');
 					string division = TrimQuoteMarks(lineArr[1]);
 
-					// skip the divisions that are not included the configuration
-					if (!_configuration.Divisions.Any(x => x == division))
+					// skip the divisions that are not included the _config
+					if (!_config.Divisions.Any(x => x == division))
 						continue;
 
 					// skip the programs that are not included in this spreadsheet (keep teams that have the primary program name or the other regions' program name in case of interregional play)
 					string programName = TrimQuoteMarks(lineArr[0]);
-					DivisionConfiguration? divisionConfig = _configuration.DivisionConfigurations.SingleOrDefault(x => x.DivisionName == division);
-					bool isMainProgram = programName == _configuration.ProgramName;
+					DivisionConfiguration? divisionConfig = _config.DivisionConfigurations.SingleOrDefault(x => x.DivisionName == division);
+					bool isMainProgram = programName == _config.ProgramName;
 					bool isOtherRegionProgram = divisionConfig != null && programName == divisionConfig.ProgramNameForOtherRegions;
 					if (!isMainProgram && !isOtherRegionProgram) 
 						continue;
 
 					string teamName = TrimQuoteMarks(lineArr[2]);
-					if (_configuration.TeamNameTransformer != null)
-						teamName = _configuration.TeamNameTransformer(teamName);
+					if (_config.TeamNameTransformer != null)
+						teamName = _config.TeamNameTransformer(teamName);
 					Team team = new Team
 					{
 						ProgramName = programName,
@@ -78,6 +81,7 @@ namespace AYSOScoreSheetGenerator.Services
 						teams.Add(division, divisionTeams);
 					}
 					divisionTeams.Add(team);
+					_log.LogTrace($"Loaded team {teamName}");
 				}
 			}
 

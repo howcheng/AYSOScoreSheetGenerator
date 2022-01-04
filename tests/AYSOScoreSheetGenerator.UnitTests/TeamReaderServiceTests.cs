@@ -5,11 +5,16 @@ using AYSOScoreSheetGenerator.Objects;
 using AYSOScoreSheetGenerator.Services;
 using Microsoft.Extensions.Options;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace AYSOScoreSheetGenerator.UnitTests
 {
-	public class TeamReaderServiceTests
+	public class TeamReaderServiceTests : BaseTest
 	{
+		public TeamReaderServiceTests(ITestOutputHelper outputHelper) : base(outputHelper)
+		{
+		}
+
 		[Theory]
 		[InlineData(true)]
 		[InlineData(false)]
@@ -59,7 +64,7 @@ namespace AYSOScoreSheetGenerator.UnitTests
 				});
 			}
 
-			TeamReaderService service = new TeamReaderService(Options.Create(config));
+			TeamReaderService service = new TeamReaderService(GetScoreSheetConfigOptions(config), GetLogger<TeamReaderService>());
 			IDictionary<string, IList<Team>>? divisionTeams = service.GetTeams();
 
 			Assert.Equal(2, divisionTeams.Count);

@@ -20,9 +20,12 @@
     "IIS Express": {
       "commandName": "IISExpress",
       "launchBrowser": true,
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      }
+        "environmentVariables": {
+            "ASPNETCORE_ENVIRONMENT": "Development",
+            "ASPNETCORE_SUBENVIRONMENT": "localhost",
+            "ASPNETCORE_HOSTINGSTARTUPASSEMBLIES": "Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation",
+            "TEST_WEB_CLIENT_SECRET_FILENAME": "client_secret.json"
+        }
     },
     "Docker": {
       "commandName": "Docker",

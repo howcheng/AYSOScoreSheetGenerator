@@ -2,6 +2,7 @@
 using AYSOScoreSheetGenerator.Objects;
 using Google.Apis.Sheets.v4.Data;
 using GoogleSheetsHelper;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace AYSOScoreSheetGenerator.Services
@@ -24,8 +25,8 @@ namespace AYSOScoreSheetGenerator.Services
 	/// </summary>
 	public class TeamListSheetService : SheetService, ITeamListSheetService
 	{
-		public TeamListSheetService([NotNull] ISheetsClient sheetsClient, IOptions<ScoreSheetConfiguration> configOptions)
-			: base(sheetsClient, configOptions)
+		public TeamListSheetService([NotNull] ISheetsClient sheetsClient, IOptionsSnapshot<ScoreSheetConfiguration> configOptions, ILogger<TeamListSheetService> log)
+			: base(sheetsClient, configOptions, log)
 		{
 		}
 
@@ -80,6 +81,7 @@ namespace AYSOScoreSheetGenerator.Services
 
 		protected virtual async Task<Sheet> SetUpSheet()
 		{
+			Log.LogInformation("Beginning the team list sheet");
 			IList<string> sheetNames = await SheetsClient.GetSheetNames();
 			if (sheetNames.Count > 1)
 			{

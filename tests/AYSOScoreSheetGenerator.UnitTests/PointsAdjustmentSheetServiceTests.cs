@@ -8,15 +8,19 @@ using AYSOScoreSheetGenerator.Objects;
 using AYSOScoreSheetGenerator.Services;
 using Google.Apis.Sheets.v4.Data;
 using GoogleSheetsHelper;
-using Microsoft.Extensions.Options;
 using Moq;
 using StandingsGoogleSheetsHelper;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace AYSOScoreSheetGenerator.UnitTests
 {
-	public class PointsAdjustmentSheetServiceTests
+	public class PointsAdjustmentSheetServiceTests : BaseTest
 	{
+		public PointsAdjustmentSheetServiceTests(ITestOutputHelper outputHelper) : base(outputHelper)
+		{
+		}
+
 		[Theory]
 		[InlineData(true)]
 		[InlineData(false)]
@@ -74,7 +78,7 @@ namespace AYSOScoreSheetGenerator.UnitTests
 
 			mockClient.Setup(x => x.AutoResizeColumn(It.IsAny<string>(), It.IsAny<int>())).ReturnsAsync(0);
 
-			RefPointsSheetService service = new RefPointsSheetService(mockClient.Object, Options.Create(config));
+			RefPointsSheetService service = new RefPointsSheetService(mockClient.Object, GetScoreSheetConfigOptions(config), GetLogger<RefPointsSheetService>());
 			await service.BuildSheet(divisionTeams);
 
 			Assert.Equal(config.RefPointsSheetConfiguration.SheetName, sheetName); // confirm that name of sheet was changed
