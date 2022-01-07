@@ -18,29 +18,44 @@ namespace AYSOScoreSheetGenerator.Services
 		/// <param name="divisions"></param>
 		/// <returns></returns>
 		Task BuildSheet(IDictionary<string, IList<Team>> divisions);
+		/// <summary>
+		/// The order in which the sheet should come in the document
+		/// </summary>
+		int Ordinal { get; }
 	}
 
 	/// <summary>
-	/// Service class to build the sheet containing the list of teams (and nothing else)
+	/// Service class to build the sheet containing the list of teams (and nothing else). This sheet must be the first one created!
 	/// </summary>
 	public class TeamListSheetService : SheetService, ITeamListSheetService
 	{
-		public TeamListSheetService([NotNull] ISheetsClient sheetsClient, IOptionsSnapshot<ScoreSheetConfiguration> configOptions, ILogger<TeamListSheetService> log)
+		private IOptionsMonitorCache<ScoreSheetConfiguration> _optionsCache;
+
+		public virtual int Ordinal { get => 1; }
+
+		public TeamListSheetService([NotNull] ISheetsClient sheetsClient, IOptionsMonitor<ScoreSheetConfiguration> configOptions, ILogger<TeamListSheetService> log
+			, IOptionsMonitorCache<ScoreSheetConfiguration> optionsCache)
 			: base(sheetsClient, configOptions, log)
 		{
+			_optionsCache = optionsCache;
 		}
 
-		public virtual async Task BuildSheet(IDictionary<string, IList<Team>> divisions)
+		public async Task BuildSheet(IDictionary<string, IList<Team>> divisions)
 		{
 			Sheet teamSheet = await SetUpSheet();
 
 			int rowIndex = 0;
 
-			// create requests for each division
-			List<AppendRequest> requests = new List<AppendRequest>();
+			// create requests for each division -- use UpdateRequests because this seems to leave the first row blank
+			List<UpdateRequest> requests = new List<UpdateRequest>();
 			foreach (KeyValuePair<string, IList<Team>> division in divisions)
 			{
 				List<GoogleSheetRow> rows = new List<GoogleSheetRow>(division.Value.Count + 1);
+				UpdateRequest request = new UpdateRequest(teamSheet.Properties.Title)
+				{
+					Rows = rows,
+					RowStart = rowIndex,
+				};
 				// header row
 				GoogleSheetRow headerRow = new GoogleSheetRow
 				{
@@ -51,12 +66,11 @@ namespace AYSOScoreSheetGenerator.Services
 						BackgroundColor = Configuration.TeamsSheetHeaderColor,
 					}
 				};
-				headerRow.AddRange(CreatePointsAdjustmentColumnHeaders());
 				rows.Add(headerRow);
 				rowIndex++;
 
 				// team names
-				IEnumerable<Team> teams = GetTeamsForDivision(division.Value);
+				IEnumerable<Team> teams = division.Value;
 				foreach (Team team in teams)
 				{
 					GoogleSheetCell cell = CreateGoogleSheetCellForTeam(team, rowIndex);
@@ -66,20 +80,19 @@ namespace AYSOScoreSheetGenerator.Services
 				rows.Add(new GoogleSheetRow { new GoogleSheetCell { StringValue = string.Empty } }); // blank row
 				rowIndex++;
 
-				AppendRequest request = new AppendRequest(teamSheet.Properties.Title)
-				{
-					Rows = rows,
-				};
 				requests.Add(request);
 			}
 
-			await SheetsClient.Append(requests);
+			await SheetsClient.Update(requests);
 
-			// resize the first column to the longest team name
-			await SheetsClient.AutoResizeColumn(teamSheet.Properties.Title, 0);
+			// resize the first column to the longest team name and update the options cache
+			ScoreSheetConfiguration config = Configuration;
+			config.TeamNameColumnWidth = await SheetsClient.AutoResizeColumn(teamSheet.Properties.Title, 0);
+			_optionsCache.TryRemove(string.Empty);
+			_optionsCache.TryAdd(string.Empty, config);
 		}
 
-		protected virtual async Task<Sheet> SetUpSheet()
+		private async Task<Sheet> SetUpSheet()
 		{
 			Log.LogInformation("Beginning the team list sheet");
 			IList<string> sheetNames = await SheetsClient.GetSheetNames();
@@ -94,23 +107,24 @@ namespace AYSOScoreSheetGenerator.Services
 			if (sheetNames.First() != Configuration.TeamsSheetName)
 				return await SheetsClient.RenameSheet(sheetNames.First(), Configuration.TeamsSheetName);
 
+			await SheetsClient.ClearSheet(Configuration.TeamsSheetName);
+
 			return await SheetsClient.GetOrAddSheet(Configuration.TeamsSheetName);
 		}
 
-		protected virtual IEnumerable<Team> GetTeamsForDivision(IList<Team> teams) => teams;
-
-		protected virtual GoogleSheetCell CreateGoogleSheetCellForTeam(Team team, int rowIndex)
+		private GoogleSheetCell CreateGoogleSheetCellForTeam(Team team, int rowIndex)
 		{
+			string teamName = team.TeamName;
+			if (Configuration.TeamNameTransformer != null)
+				teamName = Configuration.TeamNameTransformer(teamName);
 			GoogleSheetCell cell = new GoogleSheetCell
 			{
-				StringValue = team.TeamName
+				StringValue = teamName
 			};
 
 			team.TeamSheetCell = $"A{rowIndex + 1}";
 
 			return cell;
 		}
-
-		protected virtual IEnumerable<GoogleSheetCell> CreatePointsAdjustmentColumnHeaders() => new GoogleSheetCell[0];
 	}
 }

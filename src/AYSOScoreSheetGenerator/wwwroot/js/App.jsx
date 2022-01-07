@@ -1,7 +1,8 @@
 ﻿const AppContext = React.createContext({
 	divisions: {},
 	divisionConfigurations: {},
-	setValue: () => { }
+	setValue: () => { },
+	spreadsheetConfiguration: {}
 });
 
 class App extends React.Component {
@@ -136,25 +137,25 @@ class App extends React.Component {
 		};
 		if (this.state.spreadsheetConfiguration.RefereePoints) {
 			scoreSheetConfiguration.refPointsSheetConfiguration = {
-				valueIsCumulative: this.state.spreadsheetConfiguration.RefereePointsAreCumulative,
+				valueIsCumulative: String(true) === this.state.spreadsheetConfiguration.RefereePointsAreCumulative,
 				affectsStandings: this.state.spreadsheetConfiguration.RefereePointsAffectStandings
 			};
 		}
 		if (this.state.spreadsheetConfiguration.VolunteerPoints) {
 			scoreSheetConfiguration.volunteerPointsSheetConfiguration = {
-				valueIsCumulative: this.state.spreadsheetConfiguration.VolunteerPointsAreCumulative,
+				valueIsCumulative: String(true) === this.state.spreadsheetConfiguration.VolunteerPointsAreCumulative,
 				affectsStandings: this.state.spreadsheetConfiguration.VolunteerPointsAffectStandings
 			};
 		}
 		if (this.state.spreadsheetConfiguration.SportsmanshipPoints) {
 			scoreSheetConfiguration.sportsmanshipPointsSheetConfiguration = {
-				valueIsCumulative: this.state.spreadsheetConfiguration.SportsmanshipPointsAreCumulative,
+				valueIsCumulative: String(true) === this.state.spreadsheetConfiguration.SportsmanshipPointsAreCumulative,
 				affectsStandings: this.state.spreadsheetConfiguration.SportsmanshipPointsAffectStandings
 			};
 		}
 		if (this.state.spreadsheetConfiguration.PointsDeductions) {
 			scoreSheetConfiguration.pointsDeductionSheetConfiguration = {
-				valueIsCumulative: this.state.spreadsheetConfiguration.PointsDeductionsAreCumulative,
+				valueIsCumulative: String(true) === this.state.spreadsheetConfiguration.PointsDeductionsAreCumulative,
 				affectsStandings: this.state.spreadsheetConfiguration.PointsDeductionsAffectStandings
 			};
 		}
@@ -178,11 +179,10 @@ class App extends React.Component {
 		if (this.state.formSubmitted) {
 			return (
 				<div className="container-fluid">
-					<h1 className="display-1 text-center">Working...</h1>
+					<h1 className="display-1 text-center">Working... <span className="spinner-border" role="status"></span></h1>
 					<div className="row">
-						<div className="col-12 justify-content-center">
-							<div className="spinner-border" role="status"></div>
-							<textarea id="log-messages" disabled readOnly className="form-control" style={{ width: "70%", height: "50%", margin: "0 auto" }}></textarea>
+						<div className="col-12 text-center">
+							<textarea id="log-messages" disabled readOnly className="form-control" style={{ width: "70%", height: "50%", minHeight: "500px", margin: "0 auto" }}></textarea>
 						</div>
 						<div className="col-12">
 							<p id="spreadsheet-link-para" style={{ display: "none" }}><a id="spreadsheet-link" target="_blank">View spreadsheet</a></p>
@@ -280,7 +280,7 @@ class UploadFile extends React.Component {
 
 			// if there is only one program name in the file, then there is no interregional play and we won't need to collect this later
 			const spreadsheetConfiguration = {
-				HasOtherRegions: programNames.length > 1
+				HasOtherPrograms: programNames.length > 1
 			};
 			if (programNames.length === 1)
 				spreadsheetConfiguration.ProgramName = programNames[0];
@@ -313,8 +313,12 @@ class UploadFile extends React.Component {
 							(You can delete the header row if you want, but it&apos;s not necessary; the application will ignore it if you leave it in.)
 						</li>
 						<li>If teams in your region will be playing against opponents that are not in your program (e.g., teams from other regions) and you need to record
-							scores from those games, you will need to add them into your file. Be sure to enter them with a different program name; it doesn&apos;t matter
-							what name you choose, but make it consistent (e.g., &quot;Interregional play&quot;, &quot;Area 10E&quot;) for all opponents in a given division.
+							scores from those games, you will need to add them into your file.
+							<ul>
+								<li>Be sure to enter them with a different program name; it doesn&apos;t matter what name you choose, but make it consistent (e.g., &quot;Interregional play&quot;, &quot;Area 10E&quot;)
+									for all opponents in a given division. Only the first three columns are required: program name, division, and team name.</li>
+								<li>Keep all of teams in your region grouped together. Don't intermix them with the teams from other regions.</li>
+							</ul>
 						</li>
 						<li>After you are done manipulating your file, upload it here.</li>
 					</ul>
@@ -545,6 +549,11 @@ class SpreadsheetConfiguration extends React.Component {
 		this.handleSubmit = this.handleSubmit.bind(this);
 		this.alreadyScrolled = React.createRef();
 		this.alreadyScrolled = false;
+		// these next two are for keeping track of things that were set in the UploadFile step
+		this.hasOtherPrograms = React.createRef();
+		this.hasOtherPrograms = false;
+		this.programName = React.createRef();
+		this.programName = null;
 
 		this.state = {};
 	}
@@ -560,8 +569,13 @@ class SpreadsheetConfiguration extends React.Component {
 	}
 
 	handleSubmit() {
+		const spreadsheetConfiguration = this.state;
+		if (this.hasOtherPrograms)
+			spreadsheetConfiguration.HasOtherPrograms = true;
+		if (this.programName)
+			spreadsheetConfiguration.ProgramName = this.programName;
 		this.alreadyScrolled = false;
-		this.context.setValue('spreadsheetConfiguration', this.state);
+		this.context.setValue('spreadsheetConfiguration', spreadsheetConfiguration);
 		this.props.nextStep();
 	}
 
@@ -606,11 +620,15 @@ class SpreadsheetConfiguration extends React.Component {
 			}
 			this.alreadyScrolled = true;
 		}
+		if (!this.hasOtherPrograms && this.context.spreadsheetConfiguration.HasOtherPrograms)
+			this.hasOtherPrograms = this.context.spreadsheetConfiguration.HasOtherPrograms;
+		if (typeof (this.programName) === "undefined" && this.context.spreadsheetConfiguration.ProgramName)
+			this.programName = this.context.spreadsheetConfiguration.ProgramName;
 	}
 
 	render() {
 		let programNameInput = null;
-		if (this.context.spreadsheetConfiguration.HasOtherRegions) {
+		if (this.hasOtherPrograms) {
 			// tbis is only necessary when there are >1 program names
 			programNameInput = (
 				<div className="mb-3">

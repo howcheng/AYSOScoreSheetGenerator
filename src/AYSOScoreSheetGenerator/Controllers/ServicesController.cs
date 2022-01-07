@@ -2,11 +2,14 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using AYSOScoreSheetGenerator.Lib;
 using AYSOScoreSheetGenerator.Objects;
 using AYSOScoreSheetGenerator.Services;
 using AYSOScoreSheetGenerator.Models;
 using GoogleSheetsHelper;
 using StandingsGoogleSheetsHelper;
+using Google.Apis.Auth.AspNetCore3;
+using Google.Apis.Auth.OAuth2;
 
 namespace AYSOScoreSheetGenerator.Controllers
 {
@@ -17,33 +20,35 @@ namespace AYSOScoreSheetGenerator.Controllers
 		private readonly ISheetsClient _sheetsClient;
 		private readonly IOptionsMonitorCache<ScoreSheetConfiguration> _optionsMonitorCache;
 
-		public ServicesController(ISheetsClient sheetsClient, IOptionsMonitorCache<ScoreSheetConfiguration> optsMonitorCache)
+		public ServicesController(ISheetsClient sheetsClient, IOptionsMonitorCache<ScoreSheetConfiguration> optionsCache)
 		{
 			_sheetsClient = sheetsClient;
-			_optionsMonitorCache = optsMonitorCache;
+			_optionsMonitorCache = optionsCache;
 		}
 
 		[HttpPost]
 		public async Task<IActionResult> Post([FromBody] UploadModel model)
 		{
-			// replace the score sheet config with the posted value
-			_optionsMonitorCache.TryRemove(string.Empty);
-			_optionsMonitorCache.TryAdd(string.Empty, model.SpreadsheetConfiguration);
-
 			// figure out what services we are going to need
 			bool hasRefPts = model.SpreadsheetConfiguration.RefPointsSheetConfiguration != null;
 			bool hasVolPts = model.SpreadsheetConfiguration.VolunteerPointsSheetConfiguration != null;
 			bool hasSptsPts = model.SpreadsheetConfiguration.SportsmanshipPointsSheetConfiguration != null;
 			bool hasPtsDed = model.SpreadsheetConfiguration.PointsDeductionSheetConfiguration != null;
 
+			_optionsMonitorCache.Clear();
+			model.SpreadsheetConfiguration.TeamNameTransformer = name => name.Split('-').Last().Trim(); // the team names have the division name in them but that's redundant
+			_optionsMonitorCache.TryAdd(string.Empty, model.SpreadsheetConfiguration);
+
 			IServiceCollection services = new ServiceCollection();
-			services.AddLogging();
+			services.AddLogging(builder => builder.ClearProviders().AddDebug().AddSignalRLogging());
 			services.AddSignalR();
 			services.AddSingleton(_sheetsClient);
-			services.AddSingleton(new PostedTeamReaderService(model.Divisions));
+			services.AddSingleton<ITeamReaderService>(new PostedTeamReaderService(model.Divisions));
+			services.AddSingleton(_optionsMonitorCache);
 
 			List<string> standingsHeaders = new List<string>
 			{
+				Constants.HDR_TEAM_NAME,
 				Constants.HDR_GAMES_PLAYED, 
 				Constants.HDR_NUM_WINS, 
 				Constants.HDR_NUM_LOSSES, 
@@ -116,13 +121,7 @@ namespace AYSOScoreSheetGenerator.Controllers
 			string[] divisionNames = model.Divisions.Keys.ToArray();
 			foreach (string divisionName in divisionNames)
 			{
-				services.AddSingleton<IDivisionSheetService>(provider => new DivisionSheetService(divisionName,
-					helper,
-					provider.GetRequiredService<StandingsRequestCreatorFactory>(),
-					provider.GetRequiredService<ISheetsClient>(),
-					provider.GetRequiredService<IOptionsSnapshot<ScoreSheetConfiguration>>(),
-					provider.GetRequiredService<ILogger<DivisionSheetService>>())
-				);
+				services.AddSingleton<IDivisionSheetService>(provider => ActivatorUtilities.CreateInstance<DivisionSheetService>(provider, divisionName, helper));
 			}
 
 			services.AddSingleton<ISpreadsheetBuilderService, SpreadsheetBuilderService>();

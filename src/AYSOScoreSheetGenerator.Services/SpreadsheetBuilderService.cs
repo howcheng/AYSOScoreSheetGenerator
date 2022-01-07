@@ -18,7 +18,7 @@ namespace AYSOScoreSheetGenerator.Services
 		IEnumerable<IDivisionSheetService> _divisionSheetServices;
 
 		public SpreadsheetBuilderService(ITeamReaderService teamReader, IEnumerable<ITeamListSheetService> teamSheetSvcs, IEnumerable<IDivisionSheetService> divSheetSvcs
-			, ISheetsClient sheetsClient, IOptionsSnapshot<ScoreSheetConfiguration> configOptions, ILogger<SpreadsheetBuilderService> log) 
+			, ISheetsClient sheetsClient, IOptionsMonitor<ScoreSheetConfiguration> configOptions, ILogger<SpreadsheetBuilderService> log) 
 			: base(sheetsClient, configOptions, log)
 		{
 			_readerSvc = teamReader;
@@ -47,7 +47,7 @@ namespace AYSOScoreSheetGenerator.Services
 
 				IDictionary<string, IList<Team>> divisions = _readerSvc.GetTeams();
 
-				foreach (ITeamListSheetService teamSheetSvc in _teamSheetServices)
+				foreach (ITeamListSheetService teamSheetSvc in _teamSheetServices.OrderBy(x => x.Ordinal))
 				{
 					await teamSheetSvc.BuildSheet(divisions);
 				}

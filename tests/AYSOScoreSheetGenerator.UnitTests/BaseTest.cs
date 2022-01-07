@@ -28,10 +28,10 @@ namespace AYSOScoreSheetGenerator.UnitTests
 			return helper;
 		}
 
-		protected IOptionsSnapshot<ScoreSheetConfiguration> GetScoreSheetConfigOptions(ScoreSheetConfiguration config)
+		protected IOptionsMonitor<ScoreSheetConfiguration> GetScoreSheetConfigOptions(ScoreSheetConfiguration config)
 		{
-			Mock<IOptionsSnapshot<ScoreSheetConfiguration>> mock = new Mock<IOptionsSnapshot<ScoreSheetConfiguration>>();
-			mock.SetupGet(x => x.Value).Returns(config);
+			Mock<IOptionsMonitor<ScoreSheetConfiguration>> mock = new Mock<IOptionsMonitor<ScoreSheetConfiguration>>();
+			mock.SetupGet(x => x.CurrentValue).Returns(config);
 			return mock.Object;
 		}
 

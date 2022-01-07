@@ -11,16 +11,20 @@ namespace AYSOScoreSheetGenerator.Services
 	public abstract class SheetService
 	{
 		protected ISheetsClient SheetsClient { get; }
-		protected ScoreSheetConfiguration Configuration { get; }
+		protected ScoreSheetConfiguration Configuration { get => _optionsMonitor.CurrentValue; }
 		protected ILogger Log { get; }
 
-		protected SheetService(ISheetsClient sheetsClient, IOptionsSnapshot<ScoreSheetConfiguration> configOptions, ILogger log)
+		private IOptionsMonitor<ScoreSheetConfiguration> _optionsMonitor;
+
+		protected SheetService(ISheetsClient sheetsClient, IOptionsMonitor<ScoreSheetConfiguration> configOptions, ILogger log)
 		{
 			SheetsClient = sheetsClient;
-			Configuration = configOptions.Value;
 			Log = log;
+			_optionsMonitor = configOptions;
 		}
 
-		protected string CreateFormulaForTeamName(Team team) => $"='{Configuration.TeamsSheetName}'!{team.TeamSheetCell}";
+		protected string CreateFormulaForTeamName(Team team) => $"={CreateCellReferenceForTeamName(team)}";
+
+		protected string CreateCellReferenceForTeamName(Team team) => $"'{Configuration.TeamsSheetName}'!{team.TeamSheetCell}";
 	}
 }

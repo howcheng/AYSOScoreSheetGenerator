@@ -14,9 +14,9 @@ namespace AYSOScoreSheetGenerator.Services
 		private readonly ScoreSheetConfiguration _config;
 		private readonly ILogger<TeamReaderService> _log;
 
-		public TeamReaderService(IOptionsSnapshot<ScoreSheetConfiguration> options, ILogger<TeamReaderService> log)
+		public TeamReaderService(IOptionsMonitor<ScoreSheetConfiguration> options, ILogger<TeamReaderService> log)
 		{
-			_config = options.Value;
+			_config = options.CurrentValue;
 			_log = log;
 		}
 

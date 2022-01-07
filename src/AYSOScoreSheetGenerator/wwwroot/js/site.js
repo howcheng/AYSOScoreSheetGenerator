@@ -8,6 +8,9 @@ var spreadsheetId;
 var connection = new signalR.HubConnectionBuilder().withUrl("/hub").build();
 
 connection.on("ReceiveMessage", function (message) {
+	if ($('#log-messages').length === 0)
+		return;
+
 	var value = $('#log-messages').val();
 	value += "\n" + message;
 	$('#log-messages').val(value);
@@ -26,3 +29,5 @@ connection.on("ReceiveMessage", function (message) {
 		$('#spreadsheet-link-para').show();
 	}
 });
+
+connection.start();

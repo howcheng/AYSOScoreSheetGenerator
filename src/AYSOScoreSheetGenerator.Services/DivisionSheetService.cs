@@ -33,21 +33,18 @@ namespace AYSOScoreSheetGenerator.Services
 		private int _numTeamsOtherRegions;
 
 		public DivisionSheetService(string divisionName, DivisionSheetHelper helper, StandingsRequestCreatorFactory requestFactory
-			, ISheetsClient sheetsClient, IOptionsSnapshot<ScoreSheetConfiguration> configOptions, ILogger<DivisionSheetService> log)
+			, ISheetsClient sheetsClient, IOptionsMonitor<ScoreSheetConfiguration> configOptions, ILogger<DivisionSheetService> log)
 			: base(sheetsClient, configOptions, log)
 		{
 			_divisionName = divisionName;
-			_divisionConfig = configOptions.Value.DivisionConfigurations.Single(x => x.DivisionName == _divisionName);
+			_divisionConfig = Configuration.DivisionConfigurations.Single(x => x.DivisionName == _divisionName);
 			_helper = helper;
 			_requestFactory = requestFactory;
 		}
 
 		public async Task BuildSheet(IList<Team> teams)
 		{
-			string sheetName = _divisionName;
-			if (Configuration.TeamNameTransformer != null)
-				sheetName = Configuration.TeamNameTransformer(sheetName);
-			Sheet divisionSheet = await SheetsClient.GetOrAddSheet(sheetName);
+			Sheet divisionSheet = await SheetsClient.GetOrAddSheet(_divisionName);
 			_sheetId = divisionSheet.Properties.SheetId;
 
 			int teamCount = teams.Count;
@@ -63,7 +60,6 @@ namespace AYSOScoreSheetGenerator.Services
 				List<GoogleSheetRow> newRows = new List<GoogleSheetRow>();
 				List<AppendRequest> appendRequests = new List<AppendRequest>();
 				List<Request> updateSheetRequests = new List<Request>();
-				List<UpdateRequest> updateDataRequests = new List<UpdateRequest>();
 
 				string startColumn = _helper.HomeTeamColumnName;
 				int endColumnIndex = _helper.HeaderRowColumns.Count - 1;
@@ -104,6 +100,7 @@ namespace AYSOScoreSheetGenerator.Services
 				};
 
 				startRowIdx += appendRequest.Rows.Count; // on 1st round, this should be 2 because of the round row and the header row
+				int startGamesRowNum = startRowIdx + 1;
 				appendRequests.Add(appendRequest);
 
 				// build the score entry portion of the round
@@ -116,38 +113,40 @@ namespace AYSOScoreSheetGenerator.Services
 				if (_divisionConfig.HasFriendlyGamesEachRound)
 				{
 					// set the last row of games to be red to indicate that it's a friendly
-					GoogleSheetCell friendlyCell = new GoogleSheetCell
-					{
-						ForegroundColor = System.Drawing.Color.Red,
-					};
-					int howMany = _helper.GetColumnIndexByHeader(Constants.HDR_WINNING_TEAM) - _helper.GetColumnIndexByHeader(Constants.HDR_HOME_TEAM) + 1;
-					GoogleSheetRow friendlyRow = new GoogleSheetRow();
-					friendlyRow.AddRange(Enumerable.Repeat(friendlyCell, howMany));
-
-					updateDataRequests.Add(new UpdateRequest(_divisionName)
-					{
-						RowStart = startRowIdx + numGameRows - 1, // -1 because it's the last row of games
-						ColumnStart = _helper.GetColumnIndexByHeader(Constants.HDR_HOME_TEAM),
-						Rows = new List<GoogleSheetRow> { friendlyRow },
-					});
+					Request colorRq = RequestCreator.CreateRowFormattingRequest(_sheetId, startRowIdx + numGameRows - 1
+						, _helper.GetColumnIndexByHeader(Constants.HDR_HOME_TEAM), _helper.GetColumnIndexByHeader(Constants.HDR_WINNING_TEAM)
+						, () =>
+						{
+							var cell = new CellData();
+							cell.SetForegroundColor(System.Drawing.Color.Red);
+							return cell;
+						}, new[] { nameof(TextFormat) }
+						);
+					updateSheetRequests.Add(colorRq);
 				}
 
 				// game winner column
 				IStandingsRequestCreator gwRequestCreator = _requestFactory.GetRequestCreator(Constants.HDR_WINNING_TEAM);
-				updateSheetRequests.Add(gwRequestCreator.CreateRequest(SetupRequestCreatorConfig<StandingsRequestCreatorConfig>(teams, startRowIdx, startRowIdx + 2)));
+				updateSheetRequests.Add(gwRequestCreator.CreateRequest(SetupRequestCreatorConfig<StandingsRequestCreatorConfig>(teams, startRowIdx, startGamesRowNum)));
 
 				// standings table
-				IEnumerable<Request> standingsTableRequests = CreateStandingsTableRequests(teams, startRowIdx, numGameRows, i);
+				int numStandingsRows;
+				IEnumerable<Request> standingsTableRequests = CreateStandingsTableRequests(teams, startRowIdx, numGameRows, roundNum, out numStandingsRows);
 				updateSheetRequests.AddRange(standingsTableRequests);
 
 				// update the sheet!
 				await SheetsClient.Append(appendRequests);
 				await SheetsClient.ExecuteRequests(updateSheetRequests);
-				await SheetsClient.Update(updateDataRequests);
+
 				Log.LogInformation("Finished round {0} for {1}", roundNum, _divisionName);
 
-				startRowIdx += numGameRows + 2; // 1 for round header, 1 for column headers
+				int rowIncrement = numGameRows >= numStandingsRows ? numGameRows : numStandingsRows;
+				startRowIdx += rowIncrement;
 			}
+
+			// resize the columns
+			IEnumerable<Request> resizeRequests = _helper.CreateCellWidthRequests(divisionSheet, Configuration.TeamNameColumnWidth);
+			await SheetsClient.ExecuteRequests(resizeRequests);
 		}
 
 		private IEnumerable<Request> CreateRequestsForTeamDropDowns(IList<Team> teams, int startRowIdx, out int numGameRows)
@@ -178,16 +177,20 @@ namespace AYSOScoreSheetGenerator.Services
 
 		private bool OddNumberOfTeams(IList<Team> teams) => (teams.Count % 2) == 1;
 
-		private IEnumerable<Request> CreateStandingsTableRequests(IList<Team> teams, int startRowIdx, int numGameRows, int roundNum)
+		private IEnumerable<Request> CreateStandingsTableRequests(IList<Team> teams, int startRowIdx, int numGameRows, int roundNum, out int numStandingsRows)
 		{
 			List<Request> requests = new List<Request>();
 
 			if (!_divisionConfig.IncludeOtherRegionsInStandings)
 				teams = teams.Where(x => x.ProgramName != _divisionConfig.ProgramNameForOtherRegions).ToList(); // ASSUMPTION: All the teams for this region are grouped together
+			numStandingsRows = teams.Count();
 			Team startTeam = teams.First();
-			string firstTeamSheetCell = $"{Configuration.TeamsSheetName}!{startTeam.TeamSheetCell}"; // "Teams!A2"
-			Request teamNamesRequest = RequestCreator.CreateRepeatedSheetFormulaRequest(_sheetId, startRowIdx, _helper.GetColumnIndexByHeader(Constants.HDR_TEAM_NAME), teams.Count
-				, $"={firstTeamSheetCell}");
+			string firstTeamSheetFormula = CreateFormulaForTeamName(startTeam); // "Teams!A2"
+			int columnIdx = _helper.GetColumnIndexByHeader(Constants.HDR_TEAM_NAME);
+			if (columnIdx == -1)
+				throw new InvalidOperationException($"Can't find column '{Constants.HDR_TEAM_NAME}' the collection. Did you forget to add it to {nameof(StandingsSheetHelper)}.{nameof(StandingsSheetHelper.HeaderRowColumns)}?");
+
+			Request teamNamesRequest = RequestCreator.CreateRepeatedSheetFormulaRequest(_sheetId, startRowIdx, columnIdx, teams.Count, firstTeamSheetFormula);
 			requests.Add(teamNamesRequest);
 
 			int startGamesRowNum = startRowIdx + 1; // first row in first round is 3
@@ -203,7 +206,7 @@ namespace AYSOScoreSheetGenerator.Services
 				roundCountsForStandings = roundNum > numRoundsThatDontCount;
 			}
 
-			int lastRoundStartRowNum = roundNum == 1 ? 0 : startGamesRowNum - numGameRows - 2; // this is for adding the values from last round; -2 for the round divider row and the column headers
+			int lastRoundStartRowNum = roundNum == 1 ? 0 : startGamesRowNum - numStandingsRows - 2; // this is for adding the values from last round; -2 for the round divider row and the column headers
 
 			foreach (string hdr in _helper.StandingsTableColumns)
 			{
@@ -222,7 +225,6 @@ namespace AYSOScoreSheetGenerator.Services
 				{
 					PointsAdjustmentRequestCreatorConfig config = SetupRequestCreatorConfig<PointsAdjustmentRequestCreatorConfig>(teams, startRowIdx, startGamesRowNum, endGamesRowNum, lastRoundStartRowNum);
 					config.RoundNumber = roundNum;
-					config.SheetName = _divisionName;
 
 					PointsAdjustmentSheetConfiguration? sheetConfig = null;
 					switch (requestCreator.ColumnHeader)
@@ -243,6 +245,7 @@ namespace AYSOScoreSheetGenerator.Services
 					if (sheetConfig == null)
 						throw new InvalidOperationException($"Could not find the configuration for the specified sheet ({requestCreator.ColumnHeader})");
 
+					config.SheetName = sheetConfig.SheetName;
 					config.ValueIsCumulative = sheetConfig.ValueIsCumulative;
 					request = requestCreator.CreateRequest(config);
 				}
@@ -257,7 +260,8 @@ namespace AYSOScoreSheetGenerator.Services
 			return requests;
 		}
 
-		private T SetupRequestCreatorConfig<T>(IList<Team> teams, int startRowIdx, int startGamesRowNum, int endGamesRowNum = 0, int lastRoundStartRowNum = 0) where T : StandingsRequestCreatorConfig
+		private T SetupRequestCreatorConfig<T>(IList<Team> teams, int startRowIdx, int startGamesRowNum, int endGamesRowNum = 0, int lastRoundStartRowNum = 0) 
+			where T : StandingsRequestCreatorConfig
 		{
 			T config = Activator.CreateInstance<T>();
 			config.SheetId = _sheetId;
@@ -268,7 +272,7 @@ namespace AYSOScoreSheetGenerator.Services
 			ScoreBasedStandingsRequestCreatorConfig? config2 = config as ScoreBasedStandingsRequestCreatorConfig;
 			if (config2 != null)
 			{
-				config2.FirstTeamsSheetCell = teams.First().TeamSheetCell;
+				config2.FirstTeamsSheetCell = CreateCellReferenceForTeamName(teams.First());
 				config2.EndGamesRowNum = endGamesRowNum;
 				config2.LastRoundStartRowNum = lastRoundStartRowNum;
 			}

@@ -57,7 +57,9 @@ namespace AYSOScoreSheetGenerator.Lib
 	
 	public static class ILoggingBuilderExtensions
 	{
-		public static ILoggingBuilder AddSignalRLogging(this ILoggingBuilder builder) 
-			=> builder.AddProvider(new SignalRLoggerProvider(builder.Services)).AddFilter<SignalRLoggerProvider>($"{nameof(AYSOScoreSheetGenerator)}.{nameof(AYSOScoreSheetGenerator.Services)}", LogLevel.Information);
+		public static ILoggingBuilder AddSignalRLogging(this ILoggingBuilder builder)
+			=> builder.AddProvider(new SignalRLoggerProvider(builder.Services))
+				.AddFilter<SignalRLoggerProvider>($"{nameof(AYSOScoreSheetGenerator)}.{nameof(Services)}", LogLevel.Information)
+				.AddFilter<SignalRLoggerProvider>(nameof(GoogleSheetsHelper), LogLevel.Information);
 	}
 }

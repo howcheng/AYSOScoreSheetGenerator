@@ -130,5 +130,10 @@ namespace AYSOScoreSheetGenerator.Objects
 		/// A collection of configuration values for each division that the application will make a score sheet for
 		/// </summary>
 		public IList<DivisionConfiguration> DivisionConfigurations { get; set; } = new List<DivisionConfiguration>();
+
+		/// <summary>
+		/// Width of the team name column; do not set a value for this, as it's used internally once we auto-resize the team name column to accommodate the longest team name
+		/// </summary>
+		public int TeamNameColumnWidth { get; set; }
 	}
 }
