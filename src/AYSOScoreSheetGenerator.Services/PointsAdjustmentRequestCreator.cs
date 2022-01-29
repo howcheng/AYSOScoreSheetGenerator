@@ -63,7 +63,7 @@ namespace AYSOScoreSheetGenerator.Services
 				formula = $"={firstPtsAdjCell}{addLastRoundValueFormula}";
 			}
 
-			Request request = RequestCreator.CreateRepeatedSheetFormulaRequest(_config.SheetId, _config.SheetStartRowIndex, _columnIndex, _config.NumTeams, formula);
+			Request request = RequestCreator.CreateRepeatedSheetFormulaRequest(_config.SheetId, _config.SheetStartRowIndex, _columnIndex, _config.RowCount, formula);
 			return request;
 		}
 	}

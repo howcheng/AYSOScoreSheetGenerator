@@ -35,7 +35,7 @@ namespace AYSOScoreSheetGenerator.UnitTests
 			Assert.NotNull(request.RepeatCell);
 			Assert.Equal(config.SheetId, request.RepeatCell.Range.SheetId);
 			Assert.Equal(config.SheetStartRowIndex, request.RepeatCell.Range.StartRowIndex);
-			Assert.Equal(config.SheetStartRowIndex + config.NumTeams, request.RepeatCell.Range.EndRowIndex);
+			Assert.Equal(config.SheetStartRowIndex + config.RowCount, request.RepeatCell.Range.EndRowIndex);
 			Assert.Equal(helper.GetColumnIndexByHeader(Constants.HDR_TOTAL_PTS), request.RepeatCell.Range.StartColumnIndex);
 
 			string expectedFormula = $"={helper.GamePointsColumnName}{config.StartGamesRowNum} + {helper.RefPointsColumnName}{config.StartGamesRowNum} + {helper.VolunteerPointsColumnName}{config.StartGamesRowNum}";
@@ -73,7 +73,7 @@ namespace AYSOScoreSheetGenerator.UnitTests
 			Assert.NotNull(request.RepeatCell);
 			Assert.Equal(config.SheetId, request.RepeatCell.Range.SheetId);
 			Assert.Equal(config.SheetStartRowIndex, request.RepeatCell.Range.StartRowIndex);
-			Assert.Equal(config.SheetStartRowIndex + config.NumTeams, request.RepeatCell.Range.EndRowIndex);
+			Assert.Equal(config.SheetStartRowIndex + config.RowCount, request.RepeatCell.Range.EndRowIndex);
 			Assert.Equal(helper.GetColumnIndexByHeader(Constants.HDR_REF_PTS), request.RepeatCell.Range.StartColumnIndex);
 
 			string refPtsCell = $"'{config.SheetName}'!{(roundNum == 1 ? "B" : "C")}3"; // column name depends on round number, row number is derived from FirstTeamsSheetCell

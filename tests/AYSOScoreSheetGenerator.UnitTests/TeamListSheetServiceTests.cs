@@ -51,22 +51,22 @@ namespace AYSOScoreSheetGenerator.UnitTests
 				.Callback((string n1, string n2, CancellationToken ct) => newName = n2)
 				.ReturnsAsync((string n1, string n2, CancellationToken ct) => new Sheet { Properties = new SheetProperties { Title = n2 } });
 
-			IList<AppendRequest>? appendRequests = null;
-			mockClient.Setup(x => x.Append(It.IsAny<IList<AppendRequest>>(), It.IsAny<CancellationToken>()))
-				.Callback((IList<AppendRequest> rqs, CancellationToken ct) => appendRequests = rqs);
+			IList<UpdateRequest>? updateRequests = null;
+			mockClient.Setup(x => x.Update(It.IsAny<IList<UpdateRequest>>(), It.IsAny<CancellationToken>()))
+				.Callback((IList<UpdateRequest> rqs, CancellationToken ct) => updateRequests = rqs);
 
 			mockClient.Setup(x => x.AutoResizeColumn(It.IsAny<string>(), It.IsAny<int>())).ReturnsAsync(0);
 
-			TeamListSheetService service = new TeamListSheetService(mockClient.Object, GetScoreSheetConfigOptions(config), GetLogger<TeamListSheetService>());
+			TeamListSheetService service = new TeamListSheetService(mockClient.Object, GetScoreSheetConfigOptions(config), GetLogger<TeamListSheetService>(), Mock.Of<IOptionsMonitorCache<ScoreSheetConfiguration>>());
 			await service.BuildSheet(divisionTeams);
 
 			Assert.Equal(config.TeamsSheetName, newName); // confirm that name of first sheet was changed
-			Assert.NotNull(appendRequests);
-			Assert.Equal(config.Divisions.Count(), appendRequests.Count); // there should be one AppendRequest per division
-			Assert.All(appendRequests, x => Assert.All(x.Rows, r => Assert.Single(r))); // each row here should only be a single cell
-			Assert.All(appendRequests, x => Assert.Equal(QUANTITY + 2, x.Rows.Count)); // including header and blank value
+			Assert.NotNull(updateRequests);
+			Assert.Equal(config.Divisions.Count(), updateRequests.Count); // there should be one AppendRequest per division
+			Assert.All(updateRequests, x => Assert.All(x.Rows, r => Assert.Single(r))); // each row here should only be a single cell
+			Assert.All(updateRequests, x => Assert.Equal(QUANTITY + 2, x.Rows.Count)); // including header and blank value
 			// each team in the division should have a row
-			Assert.Collection(appendRequests,
+			Assert.Collection(updateRequests,
 				x => Assert.Equal(divisionTeams.First().Value.Select(t => t.TeamName), x.Rows.Skip(1).Take(QUANTITY).SelectMany(r => r.Select(c => c.StringValue))), 
 				x => Assert.Equal(divisionTeams.Last().Value.Select(t => t.TeamName), x.Rows.Skip(1).Take(QUANTITY).SelectMany(r => r.Select(c => c.StringValue))));
 		}
@@ -111,7 +111,7 @@ namespace AYSOScoreSheetGenerator.UnitTests
 			mockClient.Setup(x => x.Append(It.IsAny<IList<AppendRequest>>(), It.IsAny<CancellationToken>()));
 			mockClient.Setup(x => x.AutoResizeColumn(It.IsAny<string>(), It.IsAny<int>())).ReturnsAsync(0);
 
-			TeamListSheetService service = new TeamListSheetService(mockClient.Object, GetScoreSheetConfigOptions(config), GetLogger<TeamListSheetService>());
+			TeamListSheetService service = new TeamListSheetService(mockClient.Object, GetScoreSheetConfigOptions(config), GetLogger<TeamListSheetService>(), Mock.Of<IOptionsMonitorCache<ScoreSheetConfiguration>>());
 			await service.BuildSheet(divisionTeams);
 
 			Assert.Equal(config.TeamsSheetName, newName); // confirm that name of first sheet was changed

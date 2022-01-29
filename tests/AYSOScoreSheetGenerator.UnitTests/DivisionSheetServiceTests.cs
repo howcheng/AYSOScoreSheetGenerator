@@ -56,7 +56,7 @@ namespace AYSOScoreSheetGenerator.UnitTests
 					}
 				},
 				RefPointsSheetConfiguration = new RefPointsSheetConfiguration(),
-				VolunteerPointsSheetConfiguration =	new VolunteerPointsSheetConfiguration(),
+				VolunteerPointsSheetConfiguration = new VolunteerPointsSheetConfiguration(),
 			};
 			return configuration;
 		}
@@ -111,12 +111,10 @@ namespace AYSOScoreSheetGenerator.UnitTests
 			return teams;
 		}
 
-		private Mock<ISheetsClient> GetMockClient(Action<IList<AppendRequest>, CancellationToken> appendCallback, Action<IList<UpdateRequest>, CancellationToken> updateDataCallback,
-			Action<IEnumerable<Request>, CancellationToken> updateSheetCallback)
+		private Mock<ISheetsClient> GetMockClient(Action<IList<AppendRequest>, CancellationToken> appendCallback, Action<IEnumerable<Request>, CancellationToken> updateSheetCallback)
 		{
 			Mock<ISheetsClient> mockClient = new Mock<ISheetsClient>();
 			mockClient.Setup(x => x.Append(It.IsAny<IList<AppendRequest>>(), It.IsAny<CancellationToken>())).Callback(appendCallback);
-			mockClient.Setup(x => x.Update(It.IsAny<IList<UpdateRequest>>(), It.IsAny<CancellationToken>())).Callback(updateDataCallback);
 			mockClient.Setup(x => x.ExecuteRequests(It.IsAny<IEnumerable<Request>>(), It.IsAny<CancellationToken>())).Callback(updateSheetCallback);
 			mockClient.Setup(x => x.GetOrAddSheet(It.IsAny<string>(), It.IsAny<int?>(), It.IsAny<int?>(), It.IsAny<CancellationToken>())).ReturnsAsync(GetDivisionSheet());
 			return mockClient;
@@ -132,13 +130,12 @@ namespace AYSOScoreSheetGenerator.UnitTests
 			FormulaGenerator fg = new FormulaGenerator(helper);
 			ScoreSheetConfiguration config = BuildConfiguration(flags);
 			DivisionConfiguration divisionConfig = config.DivisionConfigurations.Single();
-			
+
 
 			List<IList<AppendRequest>> appendRequests = new List<IList<AppendRequest>>();
 			Action<IList<AppendRequest>, CancellationToken> appendCallback = (rqs, ct) => appendRequests.Add(rqs);
-			Action<IList<UpdateRequest>, CancellationToken> updateDataCallback = (rqs, ct) => { };
 			Action<IEnumerable<Request>, CancellationToken> updateSheetCallback = (rqs, ct) => { };
-			Mock<ISheetsClient> mockClient = GetMockClient(appendCallback, updateDataCallback, updateSheetCallback);
+			Mock<ISheetsClient> mockClient = GetMockClient(appendCallback, updateSheetCallback);
 
 			DivisionSheetService service = new DivisionSheetService(DIVISION, helper, GetRequestCreatorFactory(fg), mockClient.Object, GetScoreSheetConfigOptions(config), GetLogger<DivisionSheetService>());
 			IList<Team> teams = CreateTeams(flags);
@@ -181,19 +178,18 @@ namespace AYSOScoreSheetGenerator.UnitTests
 			ScoreSheetConfiguration config = BuildConfiguration(flags);
 			DivisionConfiguration divisionConfig = config.DivisionConfigurations.Single();
 
-			List<IList<UpdateRequest>> updateDataRequests = new List<IList<UpdateRequest>>();
 			List<IEnumerable<Request>> updateSheetRequests = new List<IEnumerable<Request>>();
 			Action<IList<AppendRequest>, CancellationToken> appendCallback = (rqs, ct) => { };
-			Action<IList<UpdateRequest>, CancellationToken> updateDataCallback = (rqs, ct) => updateDataRequests.Add(rqs);
 			Action<IEnumerable<Request>, CancellationToken> updateSheetCallback = (rqs, ct) => updateSheetRequests.Add(rqs);
-			Mock<ISheetsClient> mockClient = GetMockClient(appendCallback, updateDataCallback, updateSheetCallback);
+			Mock<ISheetsClient> mockClient = GetMockClient(appendCallback, updateSheetCallback);
 
 			DivisionSheetService service = new DivisionSheetService(DIVISION, helper, GetRequestCreatorFactory(fg), mockClient.Object, GetScoreSheetConfigOptions(config), GetLogger<DivisionSheetService>());
 			IList<Team> teams = CreateTeams(flags);
 			await service.BuildSheet(teams);
 
-			// should be one set of Requests per round
-			Assert.Equal(config.GameDates.Count(), updateSheetRequests.Count);
+			// should be one set of Requests per round + one to resize the columns at the end
+			List<IEnumerable<Request>> roundRequests = updateSheetRequests.Where(ie => ie.All(r => r.UpdateDimensionProperties == null)).ToList();
+			Assert.Equal(config.GameDates.Count(), roundRequests.Count);
 			// verify the team dropdowns
 			int startRowIdx = 0;
 			int counter = 0;
@@ -202,9 +198,9 @@ namespace AYSOScoreSheetGenerator.UnitTests
 			if (!hasEvenNumberOfTeams && hasFriendlies)
 				numGameRows += 1;
 			Func<int, int> calculateNextEndRowIdx = start => start + numGameRows;
-			Assert.All(updateSheetRequests, usr =>
+			Assert.All(roundRequests, rr =>
 			{
-				IEnumerable<Request> ddlRequests = usr.Where(rq => rq.SetDataValidation != null);
+				IEnumerable<Request> ddlRequests = rr.Where(rq => rq.SetDataValidation != null);
 				Assert.Equal(2, ddlRequests.Count()); // expect requests for home team and away team columns
 				Assert.All(ddlRequests, ddlr =>
 				{
@@ -212,17 +208,17 @@ namespace AYSOScoreSheetGenerator.UnitTests
 					Assert.Equal($"='{config.TeamsSheetName}'!{teams.First().TeamSheetCell}:{teams.Last().TeamSheetCell}", cv.UserEnteredValue);
 				});
 			});
-			Assert.All(updateSheetRequests, usr =>
+			Assert.All(roundRequests, rr =>
 			{
-				IEnumerable<Request> ddlRequests = usr.Where(rq => rq.SetDataValidation != null);
+				IEnumerable<Request> ddlRequests = rr.Where(rq => rq.SetDataValidation != null);
 				Assert.Collection(ddlRequests,
 					ddlr => Assert.Equal(helper.GetColumnIndexByHeader(Constants.HDR_HOME_TEAM), ddlr.SetDataValidation.Range.StartColumnIndex),
 					ddlr => Assert.Equal(helper.GetColumnIndexByHeader(Constants.HDR_AWAY_TEAM), ddlr.SetDataValidation.Range.StartColumnIndex)
 				);
 			});
-			Assert.All(updateSheetRequests, usr =>
+			Assert.All(roundRequests, rr =>
 			{
-				IEnumerable<Request> ddlRequests = usr.Where(rq => rq.SetDataValidation != null);
+				IEnumerable<Request> ddlRequests = rr.Where(rq => rq.SetDataValidation != null);
 				int startIdx = calculateNextStartRowIdx(startRowIdx);
 				Assert.All(ddlRequests, ddlr => Assert.Equal(startIdx, ddlr.SetDataValidation.Range.StartRowIndex));
 				Assert.All(ddlRequests, ddlr => Assert.Equal(startIdx, ddlr.SetDataValidation.Range.StartRowIndex));
@@ -232,29 +228,31 @@ namespace AYSOScoreSheetGenerator.UnitTests
 			});
 
 			counter = 0;
-			Assert.Equal(config.GameDates.Count(), updateDataRequests.Count);
 			if (hasFriendlies)
 			{
-				Assert.All(updateDataRequests, ur => Assert.Single(ur));
-				Assert.All(updateDataRequests, ur => Assert.All(ur, r => Assert.Single(r.Rows)));
+				Assert.All(roundRequests, ur => Assert.Single(ur.Where(r => r.RepeatCell?.Cell?.UserEnteredFormat != null)));
 				// the friendly games will be in the last row
-				Assert.All(updateDataRequests, ur =>
+				Assert.All(roundRequests, ur =>
 				{
-					Assert.All(ur, r =>
+					IEnumerable<Request> colorRequests = ur.Where(r => r.RepeatCell?.Cell?.UserEnteredFormat != null);
+					Assert.All(colorRequests, r =>
 					{
-						Assert.Equal(calculateNextStartRowIdx(startRowIdx) + numGameRows - 1, r.RowStart);
-
-						GoogleSheetRow row = r.Rows.Single();
-						Assert.Equal(5, row.Count); // home/away teams + home/away scores + game winner
-						Assert.All(row, cell => Assert.Equal(System.Drawing.Color.Red, cell.ForegroundColor));
+						Assert.Equal(calculateNextStartRowIdx(startRowIdx) + numGameRows - 1, r.RepeatCell.Range.StartRowIndex);
+						Assert.Equal(5, r.RepeatCell.Range.EndColumnIndex - r.RepeatCell.Range.StartColumnIndex); // home/away teams + home/away scores + game winner
+						Color red = System.Drawing.Color.Red.ToGoogleColor();
+						Color textColor = r.RepeatCell.Cell.UserEnteredFormat.TextFormat.ForegroundColor; // Assert.Equal(red, textColor) fails even though they are the same
+						Assert.Equal(red.Alpha, textColor.Alpha);
+						Assert.Equal(red.Red, textColor.Red);
+						Assert.Equal(red.Blue, textColor.Blue);
+						Assert.Equal(red.Green, textColor.Green);
 					});
 				});
 			}
 			else
-				Assert.All(updateDataRequests, ur => Assert.Empty(ur)); // no friendlies means no update requests to change the background color of the last games
+				Assert.All(roundRequests, ur => Assert.Empty(ur.Where(r => r.RepeatCell?.Cell?.UserEnteredFormat != null))); // no friendlies means no requests to change the background color of the last games
 
 			// verify the formula columns
-			Assert.All(updateSheetRequests, usr => AssertFormulaRequestExists(helper, usr, Constants.HDR_WINNING_TEAM));
+			Assert.All(roundRequests.Where(usr => usr.Any(ur => ur.RepeatCell?.Cell?.UserEnteredValue != null)), usr => AssertFormulaRequestExists(helper, usr, Constants.HDR_WINNING_TEAM));
 		}
 
 		[Theory]
@@ -273,22 +271,22 @@ namespace AYSOScoreSheetGenerator.UnitTests
 
 			List<IEnumerable<Request>> updateSheetRequests = new List<IEnumerable<Request>>();
 			Action<IList<AppendRequest>, CancellationToken> appendCallback = (rqs, ct) => { };
-			Action<IList<UpdateRequest>, CancellationToken> updateDataCallback = (rqs, ct) => { };
 			Action<IEnumerable<Request>, CancellationToken> updateSheetCallback = (rqs, ct) => updateSheetRequests.Add(rqs);
-			Mock<ISheetsClient> mockClient = GetMockClient(appendCallback, updateDataCallback, updateSheetCallback);
+			Mock<ISheetsClient> mockClient = GetMockClient(appendCallback, updateSheetCallback);
 
 			DivisionSheetService service = new DivisionSheetService(DIVISION, helper, GetRequestCreatorFactory(fg), mockClient.Object, GetScoreSheetConfigOptions(config), GetLogger<DivisionSheetService>());
 			IList<Team> teams = CreateTeams(flags);
 			await service.BuildSheet(teams);
 
-			// should be one set of Requests per round
-			Assert.Equal(config.GameDates.Count(), updateSheetRequests.Count);
+			// should be one set of Requests per round + one to resize the columns at the end
+			List<IEnumerable<Request>> roundRequests = updateSheetRequests.Where(ie => ie.All(r => r.UpdateDimensionProperties == null)).ToList();
+			Assert.Equal(config.GameDates.Count(), roundRequests.Count);
 
 			int numTeams = includeOtherRegions ? teams.Count : teams.Count(t => t.ProgramName != divisionConfig.ProgramNameForOtherRegions);
 
 			foreach (string columnHeader in helper.StandingsTableColumns)
 			{
-				Assert.All(updateSheetRequests, usr => AssertFormulaRequestExists(helper, usr, columnHeader, numTeams));
+				Assert.All(roundRequests, usr => AssertFormulaRequestExists(helper, usr, columnHeader, numTeams));
 			}
 		}
 

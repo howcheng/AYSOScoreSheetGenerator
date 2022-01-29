@@ -19,16 +19,11 @@ class App extends React.Component {
 		}
 		this.getAccordionButton = (step, text, target) => {
 			// if the user hasn't gotten to the current step yet, they aren't allowed to expand the section
-			let buttonAttrs = {};
-			if (step <= this.state.maxStep) {
-				const expanded = step === this.state.currentStep ? "true" : "false";
-				buttonAttrs = {
-					//'data-bs-toggle': 'collapse', -- don't allow the user to expand and collapse the sec
-					//'data-bs-target': `#${target}`,
-					'aria-expanded': expanded,
-					'aria-controls': target
-				};
-			}
+			const expanded = step === this.state.currentStep ? "true" : "false";
+			const buttonAttrs = {
+				'aria-expanded': expanded,
+				'aria-controls': target
+			};
 			return (
 				<button className={`accordion-button ${step === this.state.currentStep ? "" : "collapsed"}`} type="button" {...buttonAttrs}>
 					{text}
@@ -39,13 +34,11 @@ class App extends React.Component {
 
 		this.prevStep = this.prevStep.bind(this);
 		this.nextStep = this.nextStep.bind(this);
-		this.startStepsOver = this.startStepsOver.bind(this);
 		this.handleChange = this.handleChange.bind(this);
 		this.handleSubmit = this.handleSubmit.bind(this);
 
 		this.state = {
 			currentStep: 1,
-			maxStep: 1,
 			setValue: this.setValue,
 			getAccordionButton: this.getAccordionButton,
 			getAccordionClass: this.getAccordionClass,
@@ -65,14 +58,6 @@ class App extends React.Component {
 		const currentStep = this.state.currentStep;
 		const newStep = currentStep + 1;
 		this.setState({ currentStep: newStep });
-
-		const maxStep = this.state.maxStep;
-		if (newStep > maxStep)
-			this.setState({ maxStep: newStep });
-	}
-
-	startStepsOver() {
-		this.setState({ maxStep: 1 });
 	}
 
 	handleChange(input, value) {
@@ -80,6 +65,8 @@ class App extends React.Component {
 	}
 
 	handleSubmit() {
+		connection.start().catch(function (err) { console.log(err.toString()); });
+
 		// massage the data to match our POCOs
 		const gameDatesArr = this.state.spreadsheetConfiguration.GameDates.split(', ').map((date) => $.datepicker.formatDate('yy-mm-ddT00:00:00Z', $.datepicker.parseDate('m/d/yy', date)));
 
@@ -179,13 +166,13 @@ class App extends React.Component {
 		if (this.state.formSubmitted) {
 			return (
 				<div className="container-fluid">
-					<h1 className="display-1 text-center">Working... <span className="spinner-border" role="status"></span></h1>
+					<h1 className="display-1 text-center">Working... <span id="spinner" className="spinner-border" role="status"></span></h1>
 					<div className="row">
 						<div className="col-12 text-center">
 							<textarea id="log-messages" disabled readOnly className="form-control" style={{ width: "70%", height: "50%", minHeight: "500px", margin: "0 auto" }}></textarea>
 						</div>
 						<div className="col-12">
-							<p id="spreadsheet-link-para" style={{ display: "none" }}><a id="spreadsheet-link" target="_blank">View spreadsheet</a></p>
+							<p id="spreadsheet-link-para" style={{ display: "none" }} className="text-center mt-3"><a id="spreadsheet-link" className="btn btn-primary" target="_blank">View spreadsheet</a></p>
 						</div>
 					</div>
 				</div>
@@ -194,7 +181,7 @@ class App extends React.Component {
 			return (
 				<div id="App" className="accordion">
 					<AppContext.Provider value={this.state}>
-						<UploadFile stepNum={1} nextStep={this.nextStep} startStepsOver={this.startStepsOver} />
+						<UploadFile stepNum={1} nextStep={this.nextStep} />
 						<FileLoadConfirmation stepNum={2} prevStep={this.prevStep} nextStep={this.nextStep} />
 						<DivisionConfiguration stepNum={3} prevStep={this.prevStep} nextStep={this.nextStep} handleChange={(e) => this.handleChange('divisionConfigurations', e)} />
 						<SpreadsheetConfiguration stepNum={4} prevStep={this.prevStep} nextStep={this.nextStep} handleChange={(e) => this.handleChange('spreadsheetConfiguration', e)} />
@@ -275,7 +262,6 @@ class UploadFile extends React.Component {
 					}
 				}
 			});
-			self.props.startStepsOver();
 			self.context.setValue('divisions', divisions);
 
 			// if there is only one program name in the file, then there is no interregional play and we won't need to collect this later

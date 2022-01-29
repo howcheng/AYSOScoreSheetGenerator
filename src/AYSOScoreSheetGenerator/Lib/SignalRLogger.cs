@@ -59,7 +59,8 @@ namespace AYSOScoreSheetGenerator.Lib
 	{
 		public static ILoggingBuilder AddSignalRLogging(this ILoggingBuilder builder)
 			=> builder.AddProvider(new SignalRLoggerProvider(builder.Services))
-				.AddFilter<SignalRLoggerProvider>($"{nameof(AYSOScoreSheetGenerator)}.{nameof(Services)}", LogLevel.Information)
-				.AddFilter<SignalRLoggerProvider>(nameof(GoogleSheetsHelper), LogLevel.Information);
+				.AddFilter<SignalRLoggerProvider>(nameof(AYSOScoreSheetGenerator), LogLevel.Information)
+				.AddFilter<SignalRLoggerProvider>(nameof(GoogleSheetsHelper), LogLevel.Information)
+				.AddFilter<SignalRLoggerProvider>("Microsoft", LogLevel.None);
 	}
 }

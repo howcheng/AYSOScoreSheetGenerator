@@ -1,15 +1,12 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using AYSOScoreSheetGenerator.Lib;
+﻿using AYSOScoreSheetGenerator.Lib;
+using AYSOScoreSheetGenerator.Models;
 using AYSOScoreSheetGenerator.Objects;
 using AYSOScoreSheetGenerator.Services;
-using AYSOScoreSheetGenerator.Models;
 using GoogleSheetsHelper;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Options;
 using StandingsGoogleSheetsHelper;
-using Google.Apis.Auth.AspNetCore3;
-using Google.Apis.Auth.OAuth2;
 
 namespace AYSOScoreSheetGenerator.Controllers
 {
@@ -19,11 +16,13 @@ namespace AYSOScoreSheetGenerator.Controllers
 	{
 		private readonly ISheetsClient _sheetsClient;
 		private readonly IOptionsMonitorCache<ScoreSheetConfiguration> _optionsMonitorCache;
+		private readonly IHubContext<LoggerHub, IScoreSheetLogger> _hub;
 
-		public ServicesController(ISheetsClient sheetsClient, IOptionsMonitorCache<ScoreSheetConfiguration> optionsCache)
+		public ServicesController(ISheetsClient sheetsClient, IOptionsMonitorCache<ScoreSheetConfiguration> optionsCache, IHubContext<LoggerHub, IScoreSheetLogger> hub)
 		{
 			_sheetsClient = sheetsClient;
 			_optionsMonitorCache = optionsCache;
+			_hub = hub;
 		}
 
 		[HttpPost]
@@ -40,11 +39,12 @@ namespace AYSOScoreSheetGenerator.Controllers
 			_optionsMonitorCache.TryAdd(string.Empty, model.SpreadsheetConfiguration);
 
 			IServiceCollection services = new ServiceCollection();
-			services.AddLogging(builder => builder.ClearProviders().AddDebug().AddSignalRLogging());
+			services.AddLogging(builder => builder.ClearProviders().AddDebug().AddSignalRLogging()); // we have to reregister the loggers because this is a separate container
 			services.AddSignalR();
+			services.AddSingleton(_hub); // we have to use pre-existing hub otherwise it won't know about any active connections
 			services.AddSingleton(_sheetsClient);
-			services.AddSingleton<ITeamReaderService>(new PostedTeamReaderService(model.Divisions));
 			services.AddSingleton(_optionsMonitorCache);
+			services.AddSingleton<ITeamReaderService>(new PostedTeamReaderService(model.Divisions));
 
 			List<string> standingsHeaders = new List<string>
 			{
@@ -79,7 +79,7 @@ namespace AYSOScoreSheetGenerator.Controllers
 					services.AddSingleton<IStandingsRequestCreator, VolunteerPointsRequestCreator>();
 				}
 			}
-			if (hasSptsPts && model.SpreadsheetConfiguration.SportsmanshipPointsSheetConfiguration.AffectsStandings)
+			if (hasSptsPts)
 			{
 				services.AddSingleton<ITeamListSheetService, SportsmanshipPointsSheetService>();
 				if (model.SpreadsheetConfiguration.SportsmanshipPointsSheetConfiguration.AffectsStandings)

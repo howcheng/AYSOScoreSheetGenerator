@@ -6,6 +6,7 @@
 var spreadsheetId;
 
 var connection = new signalR.HubConnectionBuilder().withUrl("/hub").build();
+connection.serverTimeoutInMilliseconds = 300000;
 
 connection.on("ReceiveMessage", function (message) {
 	if ($('#log-messages').length === 0)
@@ -17,17 +18,18 @@ connection.on("ReceiveMessage", function (message) {
 
 	// grab the spreadsheet ID when it shows up
 	const searchPhrase = "spreadsheet with ID";
-	if (!spreadsheetId && value.indexOf(searchPhrase) > -1) {
+	if (!spreadsheetId && message.indexOf(searchPhrase) > -1) {
 		var idx = value.indexOf(searchPhrase) + searchPhrase.length + 1;
 		var idx2 = value.indexOf(" ", idx);
 		spreadsheetId = value.substr(idx, idx2 - idx1);
 	}
 
 	// look for the phrase signalling that we are all done or if there was a problem
-	if (value === "All done!" || value.startsWith("Uh-oh")) {
+	if (message === "All done!" || message.startsWith("Uh-oh")) {
 		$('#spreadsheet-link').prop('href', 'https://docs.google.com/spreadsheets/d/' + spreadsheetId + '/edit#gid=0');
 		$('#spreadsheet-link-para').show();
+		$('#spinner').hide();
 	}
 });
 
-connection.start();
+//connection.start().catch(function (err) { console.log(err.toString()); });

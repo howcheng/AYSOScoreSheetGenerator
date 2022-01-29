@@ -1,14 +1,12 @@
-using Microsoft.Extensions.Configuration;
-using GoogleSheetsHelper;
-using StandingsGoogleSheetsHelper;
 using AYSOScoreSheetGenerator.Lib;
-using Google.Apis.Auth.AspNetCore3;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Newtonsoft.Json.Linq;
-using Google.Apis.Auth.OAuth2;
-using Microsoft.Extensions.Options;
 using AYSOScoreSheetGenerator.Objects;
+using Google.Apis.Auth.AspNetCore3;
+using Google.Apis.Auth.OAuth2;
+using GoogleSheetsHelper;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
+using Newtonsoft.Json.Linq;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
@@ -22,7 +20,10 @@ builder.Services
 	.AddRazorPages()
 	.AddRazorRuntimeCompilation();
 
-builder.Services.AddSignalR();
+builder.Services.AddSignalR(options =>
+{
+	options.KeepAliveInterval = TimeSpan.FromMinutes(5);
+});
 
 if (builder.Environment.IsLocalhost())
 {
@@ -83,11 +84,10 @@ app.UseStaticFiles();
 
 app.UseRouting();
 app.UseAuthentication();
-app.UseAuthorization();
-
-app.UseEndpoints(endpoints => endpoints.MapHub<LoggerHub>("/hub"));
+app.UseAuthorization();	
 
 app.MapDefaultControllerRoute();
 app.MapRazorPages();
+app.MapHub<LoggerHub>("/hub");
 
 app.Run();

@@ -22,7 +22,7 @@ namespace AYSOScoreSheetGenerator.Services
 			AddColumnToFormulaIfExists(sb, Constants.HDR_SPORTSMANSHIP_PTS, config.StartGamesRowNum);
 			AddColumnToFormulaIfExists(sb, Constants.HDR_PTS_DEDUCTION, config.StartGamesRowNum);
 
-			return RequestCreator.CreateRepeatedSheetFormulaRequest(config.SheetId, config.SheetStartRowIndex, _columnIndex, config.NumTeams,
+			return RequestCreator.CreateRepeatedSheetFormulaRequest(config.SheetId, config.SheetStartRowIndex, _columnIndex, config.RowCount,
 				sb.ToString());
 		}
 

@@ -127,7 +127,8 @@ namespace AYSOScoreSheetGenerator.Services
 
 				// game winner column
 				IStandingsRequestCreator gwRequestCreator = _requestFactory.GetRequestCreator(Constants.HDR_WINNING_TEAM);
-				updateSheetRequests.Add(gwRequestCreator.CreateRequest(SetupRequestCreatorConfig<StandingsRequestCreatorConfig>(teams, startRowIdx, startGamesRowNum)));
+				StandingsRequestCreatorConfig gwRequestConfig = SetupRequestCreatorConfig<StandingsRequestCreatorConfig>(teams, startRowIdx, startGamesRowNum, numGameRows);
+				updateSheetRequests.Add(gwRequestCreator.CreateRequest(gwRequestConfig));
 
 				// standings table
 				int numStandingsRows;
@@ -217,13 +218,13 @@ namespace AYSOScoreSheetGenerator.Services
 				Request request;
 				if (requestCreator is ScoreBasedStandingsRequestCreator)
 				{
-					ScoreBasedStandingsRequestCreatorConfig config = SetupRequestCreatorConfig<ScoreBasedStandingsRequestCreatorConfig>(teams, startRowIdx, startGamesRowNum, endGamesRowNum, lastRoundStartRowNum);
+					ScoreBasedStandingsRequestCreatorConfig config = SetupRequestCreatorConfig<ScoreBasedStandingsRequestCreatorConfig>(teams, startRowIdx, startGamesRowNum, numStandingsRows, endGamesRowNum, lastRoundStartRowNum);
 					config.RoundCountsForStandings = roundCountsForStandings;
 					request = requestCreator.CreateRequest(config);
 				}
 				else if (requestCreator is PointsAdjustmentRequestCreator)
 				{
-					PointsAdjustmentRequestCreatorConfig config = SetupRequestCreatorConfig<PointsAdjustmentRequestCreatorConfig>(teams, startRowIdx, startGamesRowNum, endGamesRowNum, lastRoundStartRowNum);
+					PointsAdjustmentRequestCreatorConfig config = SetupRequestCreatorConfig<PointsAdjustmentRequestCreatorConfig>(teams, startRowIdx, startGamesRowNum, numStandingsRows, endGamesRowNum, lastRoundStartRowNum);
 					config.RoundNumber = roundNum;
 
 					PointsAdjustmentSheetConfiguration? sheetConfig = null;
@@ -251,7 +252,7 @@ namespace AYSOScoreSheetGenerator.Services
 				}
 				else
 				{
-					StandingsRequestCreatorConfig config = SetupRequestCreatorConfig<StandingsRequestCreatorConfig>(teams, startRowIdx, startGamesRowNum);
+					StandingsRequestCreatorConfig config = SetupRequestCreatorConfig<StandingsRequestCreatorConfig>(teams, startRowIdx, startGamesRowNum, numStandingsRows);
 					request = requestCreator.CreateRequest(config);
 				}
 				requests.Add(request);
@@ -260,12 +261,12 @@ namespace AYSOScoreSheetGenerator.Services
 			return requests;
 		}
 
-		private T SetupRequestCreatorConfig<T>(IList<Team> teams, int startRowIdx, int startGamesRowNum, int endGamesRowNum = 0, int lastRoundStartRowNum = 0) 
+		private T SetupRequestCreatorConfig<T>(IList<Team> teams, int startRowIdx, int startGamesRowNum, int rowCount, int endGamesRowNum = 0, int lastRoundStartRowNum = 0) 
 			where T : StandingsRequestCreatorConfig
 		{
 			T config = Activator.CreateInstance<T>();
 			config.SheetId = _sheetId;
-			config.NumTeams = teams.Count;
+			config.RowCount = rowCount;
 			config.SheetStartRowIndex = startRowIdx;
 			config.StartGamesRowNum = startGamesRowNum;
 

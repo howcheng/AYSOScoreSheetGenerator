@@ -32,7 +32,7 @@ namespace AYSOScoreSheetGenerator.Objects
 		/// <summary>
 		/// Flag that indicates the values will affect game standings
 		/// </summary>
-		public bool AffectsStandings { get; set; } = true;
+		public bool AffectsStandings { get; set; }
 
 		public PointsAdjustmentSheetType Type { get; }
 
