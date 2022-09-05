@@ -46,9 +46,9 @@ if (builder.Environment.IsLocalhost())
 			// when running on localhost, we have to use your personal Google account via OAuth; when running in Google Cloud Run, this uses the IAM role instead
 			string? fileName = Environment.GetEnvironmentVariable("TEST_WEB_CLIENT_SECRET_FILENAME");
 			string path = Path.Combine(builder.Environment.ContentRootPath, fileName);
-			if (File.Exists(path))
+			if (File.Exists(path)) // the file goes into the same folder as the .csproj; the .gitignore file will make sure it doesn't get into Git
 			{
-				var secrets = JObject.Parse(File.ReadAllText(path))["web"];
+				var secrets = JObject.Parse(File.ReadAllText(path))["installed"];
 				options.ClientId = secrets["client_id"].Value<string>();
 				options.ClientSecret = secrets["client_secret"].Value<string>();
 			}
@@ -60,7 +60,7 @@ builder.Services
 	.AddScoped<ISheetsClient, SheetsClientAdapter>(provider =>
 	{
 		// This is a hack: getting the GoogleCredential requires an async method which can't be used here, so instead of using a SheetsClient, we use an adapter class.
-		// Then on page load of Index.cshtml we grab the credential and set it into cache. The adapter lazy loads the actual client when finally need to use it.
+		// Then on page load of Index.cshtml we grab the credential and set it into cache. The adapter lazy loads the actual client when we finally need to use it.
 		IMemoryCache cache = provider.GetRequiredService<IMemoryCache>();
 		GoogleCredential credential = cache.Get<GoogleCredential>(nameof(GoogleCredential));
 		return new SheetsClientAdapter(credential, provider.GetRequiredService<ILogger<SheetsClient>>());
