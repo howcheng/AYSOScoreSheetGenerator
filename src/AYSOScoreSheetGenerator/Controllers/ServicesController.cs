@@ -35,7 +35,11 @@ namespace AYSOScoreSheetGenerator.Controllers
 			bool hasPtsDed = model.SpreadsheetConfiguration.PointsDeductionSheetConfiguration != null;
 
 			_optionsMonitorCache.Clear();
-			model.SpreadsheetConfiguration.TeamNameTransformer = name => name.Split('-').Last().Trim(); // the team names have the division name in them but that's redundant
+			model.SpreadsheetConfiguration.TeamNameTransformer = name =>
+			{
+				string[] arr = name.Split('-'); // the team names have the division name in them but that's redundant
+				return arr.Skip(1).Aggregate((s1, s2) => $"{s1.Trim()}{s2.Trim()}"); // in case of a hyphenated last name
+			}
 			_optionsMonitorCache.TryAdd(string.Empty, model.SpreadsheetConfiguration);
 
 			IServiceCollection services = new ServiceCollection();
@@ -53,7 +57,7 @@ namespace AYSOScoreSheetGenerator.Controllers
 				Constants.HDR_NUM_WINS, 
 				Constants.HDR_NUM_LOSSES, 
 				Constants.HDR_NUM_DRAWS, 
-				Constants.HDR_GAME_PTS, // insert ref/volunteer etc columns here if needed
+				Constants.HDR_GAME_PTS,
 				Constants.HDR_TOTAL_PTS,
 				Constants.HDR_RANK,
 				Constants.HDR_GOALS_FOR,
@@ -128,7 +132,7 @@ namespace AYSOScoreSheetGenerator.Controllers
 
 			IServiceProvider provider = services.BuildServiceProvider();
 			ISpreadsheetBuilderService builder = provider.GetRequiredService<ISpreadsheetBuilderService>();
-			builder.BuildSpreadsheet();
+			_ = builder.BuildSpreadsheet();
 
 			return Ok();
 		}
