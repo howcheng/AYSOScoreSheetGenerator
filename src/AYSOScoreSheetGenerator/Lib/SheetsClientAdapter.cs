@@ -27,8 +27,8 @@ namespace AYSOScoreSheetGenerator.Lib
 		public async Task<Sheet> AddSheet(string title, int? columnCount = null, int? rowCount = null, CancellationToken ct = default)
 			=> await _sheetsClient.Value.AddSheet(title, columnCount, rowCount, ct);
 
-		public async Task Append(IList<AppendRequest> data, CancellationToken ct = default)
-			=> await _sheetsClient.Value.Append(data, ct);
+		public async Task Append(IList<AppendRequest> requests, CancellationToken ct = default)
+			=> await _sheetsClient.Value.Append(requests, ct);
 
 		public async Task<int> AutoResizeColumn(string sheetName, int columnIndex)
 			=> await _sheetsClient.Value.AutoResizeColumn(sheetName, columnIndex);
@@ -54,6 +54,12 @@ namespace AYSOScoreSheetGenerator.Lib
 		public async Task<IList<string>> GetSheetNames(CancellationToken ct = default)
 			=> await _sheetsClient.Value.GetSheetNames(ct);
 
+		public async Task<IList<RowData>> GetRowData(string range, CancellationToken ct = default)
+			=> await _sheetsClient.Value.GetRowData(range, ct);
+
+		public async Task<IList<IList<RowData>>> GetRowData(IEnumerable<string> ranges, CancellationToken ct = default)
+			=> await _sheetsClient.Value.GetRowData(ranges, ct);
+
 		public async Task<IList<IList<object>>> GetValues(string range, CancellationToken ct = default)
 			=> await _sheetsClient.Value.GetValues(range, ct);
 
@@ -66,7 +72,10 @@ namespace AYSOScoreSheetGenerator.Lib
 		public async Task RenameSpreadsheet(string newName, CancellationToken ct = default)
 			=> await _sheetsClient.Value.RenameSpreadsheet(newName, ct);
 
-		public async Task Update(IList<UpdateRequest> data, CancellationToken ct = default)
-			=> await _sheetsClient.Value.Update(data, ct);
+		public async Task Update(IList<UpdateRequest> requests, CancellationToken ct = default)
+			=> await _sheetsClient.Value.Update(requests, ct);
+
+		public async Task UpdateValues(IList<UpdateRequest> requests, CancellationToken ct = default)
+			=> await _sheetsClient.Value.UpdateValues(requests, ct);
 	}
 }
