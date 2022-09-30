@@ -45,8 +45,8 @@ if (builder.Environment.IsLocalhost())
 		{
 			// when running on localhost, we have to use your personal Google account via OAuth; when running in Google Cloud Run, this uses the IAM role instead
 			string? fileName = Environment.GetEnvironmentVariable("TEST_WEB_CLIENT_SECRET_FILENAME");
-			string path = Path.Combine(builder.Environment.ContentRootPath, fileName);
-			if (File.Exists(path)) // the file goes into the same folder as the .csproj; the .gitignore file will make sure it doesn't get into Git
+			string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), fileName);
+			if (File.Exists(path)) // the file goes into %USERDATA% folder (C:\Users\USERNAME)
 			{
 				var secrets = JObject.Parse(File.ReadAllText(path))["installed"];
 				options.ClientId = secrets["client_id"].Value<string>();
