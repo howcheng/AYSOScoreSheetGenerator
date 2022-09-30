@@ -34,7 +34,7 @@ namespace AYSOScoreSheetGenerator.UnitTests
 			HasInterregionalPlay = 2,
 			AllRoundsCountForStandings = 4,
 			HasFriendlyGames = 8,
-			IncludeOtherRegions = 16,
+			IncludeOtherRegions = 16, // should other regions be shown in the standings?
 		}
 
 		private ScoreSheetConfiguration BuildConfiguration(TestFlags flags)
@@ -97,17 +97,26 @@ namespace AYSOScoreSheetGenerator.UnitTests
 
 		private IList<Team> CreateTeams(TestFlags flags)
 		{
-			bool hasOtherRegions = (flags & TestFlags.IncludeOtherRegions) == TestFlags.IncludeOtherRegions;
+			bool hasOtherRegions = (flags & TestFlags.HasInterregionalPlay) == TestFlags.HasInterregionalPlay;
 			bool evenNumberOfTeams = (flags & TestFlags.EvenNumberOfTeams) == TestFlags.EvenNumberOfTeams;
 
 			int counter = 0, counter2 = 0;
 			Fixture f = new Fixture();
-			IList<Team> teams = f.Build<Team>()
+			List<Team> teams = f.Build<Team>()
 				.With(x => x.DivisionName, DIVISION)
-				.With(x => x.ProgramName, () => hasOtherRegions ? (counter++ < 2 ? OTHER_REGION_PROGRAM : PROGRAM) : PROGRAM)
+				.With(x => x.ProgramName, PROGRAM)
 				.With(x => x.TeamSheetCell, () => $"A{++counter2}")
 				.CreateMany(evenNumberOfTeams ? 4 : 5)
 				.ToList();
+			if (hasOtherRegions)
+			{
+				IEnumerable<Team> teams2 = f.Build<Team>()
+				.With(x => x.DivisionName, DIVISION)
+				.With(x => x.ProgramName, OTHER_REGION_PROGRAM)
+				.With(x => x.TeamSheetCell, () => $"A{++counter2}")
+				.CreateMany(10); // because there are usually a lot more of them than ours
+				teams.AddRange(teams2);
+			}
 			return teams;
 		}
 
@@ -166,12 +175,16 @@ namespace AYSOScoreSheetGenerator.UnitTests
 		[Theory]
 		[InlineData(TestFlags.EvenNumberOfTeams)]
 		[InlineData(TestFlags.HasFriendlyGames)]
+		[InlineData(TestFlags.HasInterregionalPlay)]
+		[InlineData(TestFlags.HasInterregionalPlay & TestFlags.IncludeOtherRegions)]
 		public async Task TestScoreEntryRequests(TestFlags flags)
 		{
 			// test to make sure that the team dropdowns and game winner column are done correctly
 
 			bool hasEvenNumberOfTeams = (flags & TestFlags.EvenNumberOfTeams) == TestFlags.EvenNumberOfTeams;
 			bool hasFriendlies = (flags & TestFlags.HasFriendlyGames) == TestFlags.HasFriendlyGames;
+			bool hasInterregional = (flags & TestFlags.HasInterregionalPlay) == TestFlags.HasInterregionalPlay;
+			bool includeOtherTeamsInStandings = (flags & TestFlags.IncludeOtherRegions) == TestFlags.IncludeOtherRegions;
 
 			DivisionSheetHelper helper = CreateDivisionSheetHelper();
 			FormulaGenerator fg = new FormulaGenerator(helper);
@@ -190,17 +203,23 @@ namespace AYSOScoreSheetGenerator.UnitTests
 			// should be one set of Requests per round + one to resize the columns at the end
 			List<IEnumerable<Request>> roundRequests = updateSheetRequests.Where(ie => ie.All(r => r.UpdateDimensionProperties == null)).ToList();
 			Assert.Equal(config.GameDates.Count(), roundRequests.Count);
-			// verify the team dropdowns
+
 			int startRowIdx = 0;
 			int counter = 0;
-			Func<int, int> calculateNextStartRowIdx = start => (counter++ * (teams.Count + 2)) + 2; // the 2nd +2 is to account for the first set of headers
-			int numGameRows = teams.Count / 2;
+			int numGameRows = hasInterregional ? teams.Count(x => x.ProgramName == PROGRAM) : teams.Count / 2;
 			if (!hasEvenNumberOfTeams && hasFriendlies)
 				numGameRows += 1;
+
+			int nextStartRowIdxOffset = (includeOtherTeamsInStandings ? teams.Count : teams.Count(x => x.ProgramName == PROGRAM)) + 2; // +2 for the header rows
+			Func<int, int> calculateNextStartRowIdx = start => (counter++ * nextStartRowIdxOffset) + 2; // +2 is to account for the first set of headers (from round 1)
 			Func<int, int> calculateNextEndRowIdx = start => start + numGameRows;
+
+			// verify the data validation (team dropdowns)
+			Func<IEnumerable<Request>, IEnumerable<Request>> getDataValidationRequests = rr => rr.Where(rq => rq.SetDataValidation != null);
 			Assert.All(roundRequests, rr =>
 			{
-				IEnumerable<Request> ddlRequests = rr.Where(rq => rq.SetDataValidation != null);
+				// verify the data validation source formula
+				IEnumerable<Request> ddlRequests = getDataValidationRequests(rr);
 				Assert.Equal(2, ddlRequests.Count()); // expect requests for home team and away team columns
 				Assert.All(ddlRequests, ddlr =>
 				{
@@ -210,7 +229,8 @@ namespace AYSOScoreSheetGenerator.UnitTests
 			});
 			Assert.All(roundRequests, rr =>
 			{
-				IEnumerable<Request> ddlRequests = rr.Where(rq => rq.SetDataValidation != null);
+				// verify the start column indices
+				IEnumerable<Request> ddlRequests = getDataValidationRequests(rr);
 				Assert.Collection(ddlRequests,
 					ddlr => Assert.Equal(helper.GetColumnIndexByHeader(Constants.HDR_HOME_TEAM), ddlr.SetDataValidation.Range.StartColumnIndex),
 					ddlr => Assert.Equal(helper.GetColumnIndexByHeader(Constants.HDR_AWAY_TEAM), ddlr.SetDataValidation.Range.StartColumnIndex)
@@ -218,7 +238,8 @@ namespace AYSOScoreSheetGenerator.UnitTests
 			});
 			Assert.All(roundRequests, rr =>
 			{
-				IEnumerable<Request> ddlRequests = rr.Where(rq => rq.SetDataValidation != null);
+				// verify the start/end row indices
+				IEnumerable<Request> ddlRequests = getDataValidationRequests(rr);
 				int startIdx = calculateNextStartRowIdx(startRowIdx);
 				Assert.All(ddlRequests, ddlr => Assert.Equal(startIdx, ddlr.SetDataValidation.Range.StartRowIndex));
 				Assert.All(ddlRequests, ddlr => Assert.Equal(startIdx, ddlr.SetDataValidation.Range.StartRowIndex));
@@ -226,7 +247,12 @@ namespace AYSOScoreSheetGenerator.UnitTests
 				Assert.All(ddlRequests, ddlr => Assert.Equal(endIdx, ddlr.SetDataValidation.Range.EndRowIndex));
 				Assert.All(ddlRequests, ddlr => Assert.Equal(endIdx, ddlr.SetDataValidation.Range.EndRowIndex));
 			});
+			Assert.All(roundRequests, rr =>
+			{
+				IEnumerable<Request> ddlRequests = getDataValidationRequests(rr);
+			});
 
+			// verify that the friendly game has a different text color
 			counter = 0;
 			if (hasFriendlies)
 			{

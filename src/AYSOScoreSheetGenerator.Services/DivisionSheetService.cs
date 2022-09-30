@@ -161,8 +161,8 @@ namespace AYSOScoreSheetGenerator.Services
 			{
 				_numTeamsOtherRegions = teams.Count(x => x.ProgramName == _divisionConfig.ProgramNameForOtherRegions);
 				_numTeamsThisRegion = teams.Count - _numTeamsOtherRegions;
-				if (_numTeamsOtherRegions >= _numTeamsThisRegion)
-					numGameRows = _numTeamsOtherRegions;  // our region's teams could all potentially be playing teams from other regions
+				if (_numTeamsOtherRegions > _numTeamsThisRegion)
+					numGameRows = _numTeamsThisRegion;  // our region's teams could all potentially be playing teams from other regions
 			}
 
 			int gameRows = numGameRows; // can't use out params in anonymous functions
