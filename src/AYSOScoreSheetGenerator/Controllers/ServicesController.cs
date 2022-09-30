@@ -38,8 +38,8 @@ namespace AYSOScoreSheetGenerator.Controllers
 			model.SpreadsheetConfiguration.TeamNameTransformer = name =>
 			{
 				string[] arr = name.Split('-'); // the team names have the division name in them but that's redundant
-				return arr.Skip(1).Aggregate((s1, s2) => $"{s1.Trim()}{s2.Trim()}"); // in case of a hyphenated last name
-			}
+				return arr.Skip(1).Aggregate((s1, s2) => $"{s1.Trim()}-{s2.Trim()}"); // in case of a hyphenated last name
+			};
 			_optionsMonitorCache.TryAdd(string.Empty, model.SpreadsheetConfiguration);
 
 			IServiceCollection services = new ServiceCollection();
