@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Google.Apis.Sheets.v4.Data;
+﻿using Google.Apis.Sheets.v4.Data;
 using GoogleSheetsHelper;
 using StandingsGoogleSheetsHelper;
 
@@ -39,7 +34,7 @@ namespace AYSOScoreSheetGenerator.Services
 		{
 		}
 
-		public Request CreateRequest(StandingsRequestCreatorConfig config)
+		protected override string GenerateFormula(StandingsRequestCreatorConfig config)
 		{
 			_config = (PointsAdjustmentRequestCreatorConfig)config;
 			string ptsAdjColumn = Utilities.ConvertIndexToColumnName((_config.RoundNumber - 1) + 1); // the column increases every round
@@ -62,9 +57,7 @@ namespace AYSOScoreSheetGenerator.Services
 				string addLastRoundValueFormula = GetAddLastRoundValueFormula(_config.LastRoundStartRowNum);
 				formula = $"={firstPtsAdjCell}{addLastRoundValueFormula}";
 			}
-
-			Request request = RequestCreator.CreateRepeatedSheetFormulaRequest(_config.SheetId, _config.SheetStartRowIndex, _columnIndex, _config.RowCount, formula);
-			return request;
+			return formula;
 		}
 	}
 

@@ -118,7 +118,7 @@ namespace AYSOScoreSheetGenerator.Services
 		private IEnumerable<Team> GetTeamsForDivision(IList<Team> teams)
 		{
 			// if there is interregional play, remove teams from the other regions
-			string divisionName = teams.First().DivisionName;
+			string divisionName = teams.First().DivisionName!;
 			DivisionConfiguration config = Configuration.DivisionConfigurations.Single(x => x.DivisionName == divisionName);
 			if (!config.HasInterregionalPlay)
 				return teams;
@@ -153,7 +153,7 @@ namespace AYSOScoreSheetGenerator.Services
 				throw new InvalidOperationException("No configuration object found for the referee points sheet");
 
 			Log.LogInformation("Beginning the referee points sheet");
-			return await SetUpSheet(Configuration.RefPointsSheetConfiguration.SheetName, Configuration.RefPointsSheetConfiguration.ValueIsCumulative);
+			return await SetUpSheet(Configuration.RefPointsSheetConfiguration.SheetName!, Configuration.RefPointsSheetConfiguration.ValueIsCumulative);
 		}
 	}
 
@@ -175,7 +175,7 @@ namespace AYSOScoreSheetGenerator.Services
 				throw new InvalidOperationException("No configuration object found for the volunteer points sheet");
 
 			Log.LogInformation("Beginning the volunteer points sheet");
-			return await SetUpSheet(Configuration.VolunteerPointsSheetConfiguration.SheetName, Configuration.VolunteerPointsSheetConfiguration.ValueIsCumulative);
+			return await SetUpSheet(Configuration.VolunteerPointsSheetConfiguration.SheetName!, Configuration.VolunteerPointsSheetConfiguration.ValueIsCumulative);
 		}
 	}
 
@@ -197,7 +197,7 @@ namespace AYSOScoreSheetGenerator.Services
 				throw new InvalidOperationException("No configuration object found for the sportsmanship points sheet");
 
 			Log.LogInformation("Beginning the sportsmanship points sheet");
-			return await SetUpSheet(Configuration.SportsmanshipPointsSheetConfiguration.SheetName, Configuration.SportsmanshipPointsSheetConfiguration.ValueIsCumulative);
+			return await SetUpSheet(Configuration.SportsmanshipPointsSheetConfiguration.SheetName!, Configuration.SportsmanshipPointsSheetConfiguration.ValueIsCumulative);
 		}
 	}
 
@@ -219,7 +219,7 @@ namespace AYSOScoreSheetGenerator.Services
 				throw new InvalidOperationException("No configuration object found for the points deduction sheet");
 
 			Log.LogInformation("Beginning the points deduction sheet");
-			return await SetUpSheet(Configuration.PointsDeductionSheetConfiguration.SheetName, Configuration.PointsDeductionSheetConfiguration.ValueIsCumulative);
+			return await SetUpSheet(Configuration.PointsDeductionSheetConfiguration.SheetName!, Configuration.PointsDeductionSheetConfiguration.ValueIsCumulative);
 		}
 	}
 }

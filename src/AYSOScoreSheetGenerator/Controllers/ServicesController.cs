@@ -26,7 +26,7 @@ namespace AYSOScoreSheetGenerator.Controllers
 		}
 
 		[HttpPost]
-		public async Task<IActionResult> Post([FromBody] UploadModel model)
+		public Task<IActionResult> Post([FromBody] UploadModel model)
 		{
 			// figure out what services we are going to need
 			bool hasRefPts = model.SpreadsheetConfiguration.RefPointsSheetConfiguration != null;
@@ -68,7 +68,7 @@ namespace AYSOScoreSheetGenerator.Controllers
 			if (hasRefPts)
 			{
 				services.AddSingleton<ITeamListSheetService, RefPointsSheetService>();
-				if (model.SpreadsheetConfiguration.RefPointsSheetConfiguration.AffectsStandings)
+				if (model.SpreadsheetConfiguration.RefPointsSheetConfiguration!.AffectsStandings)
 				{
 					standingsHeaders.Insert(insertIdx++, Constants.HDR_REF_PTS);
 					services.AddSingleton<IStandingsRequestCreator, RefPointsRequestCreator>();
@@ -77,7 +77,7 @@ namespace AYSOScoreSheetGenerator.Controllers
 			if (hasVolPts)
 			{
 				services.AddSingleton<ITeamListSheetService, VolunteerPointsSheetService>();
-				if (model.SpreadsheetConfiguration.VolunteerPointsSheetConfiguration.AffectsStandings)
+				if (model.SpreadsheetConfiguration.VolunteerPointsSheetConfiguration!.AffectsStandings)
 				{
 					standingsHeaders.Insert(insertIdx++, Constants.HDR_VOL_PTS);
 					services.AddSingleton<IStandingsRequestCreator, VolunteerPointsRequestCreator>();
@@ -86,7 +86,7 @@ namespace AYSOScoreSheetGenerator.Controllers
 			if (hasSptsPts)
 			{
 				services.AddSingleton<ITeamListSheetService, SportsmanshipPointsSheetService>();
-				if (model.SpreadsheetConfiguration.SportsmanshipPointsSheetConfiguration.AffectsStandings)
+				if (model.SpreadsheetConfiguration.SportsmanshipPointsSheetConfiguration!.AffectsStandings)
 				{
 					standingsHeaders.Insert(insertIdx++, Constants.HDR_SPORTSMANSHIP_PTS);
 					services.AddSingleton<IStandingsRequestCreator, SportsmanshipPointsRequestCreator>();
@@ -134,7 +134,7 @@ namespace AYSOScoreSheetGenerator.Controllers
 			ISpreadsheetBuilderService builder = provider.GetRequiredService<ISpreadsheetBuilderService>();
 			_ = builder.BuildSpreadsheet();
 
-			return Ok();
+			return Task.FromResult((IActionResult)Ok());
 		}
 
 		/// <summary>

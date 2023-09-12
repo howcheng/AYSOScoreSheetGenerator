@@ -1,6 +1,4 @@
 ﻿using System.Text;
-using Google.Apis.Sheets.v4.Data;
-using GoogleSheetsHelper;
 using StandingsGoogleSheetsHelper;
 
 namespace AYSOScoreSheetGenerator.Services
@@ -12,7 +10,7 @@ namespace AYSOScoreSheetGenerator.Services
 		{
 		}
 
-		public Request CreateRequest(StandingsRequestCreatorConfig config)
+		protected override string GenerateFormula(StandingsRequestCreatorConfig config)
 		{
 			string gamePtsCol = $"{_formulaGenerator.SheetHelper.GetColumnNameByHeader(Constants.HDR_GAME_PTS)}{config.StartGamesRowNum}";
 			StringBuilder sb = new StringBuilder();
@@ -21,9 +19,7 @@ namespace AYSOScoreSheetGenerator.Services
 			AddColumnToFormulaIfExists(sb, Constants.HDR_VOL_PTS, config.StartGamesRowNum);
 			AddColumnToFormulaIfExists(sb, Constants.HDR_SPORTSMANSHIP_PTS, config.StartGamesRowNum);
 			AddColumnToFormulaIfExists(sb, Constants.HDR_PTS_DEDUCTION, config.StartGamesRowNum);
-
-			return RequestCreator.CreateRepeatedSheetFormulaRequest(config.SheetId, config.SheetStartRowIndex, _columnIndex, config.RowCount,
-				sb.ToString());
+			return sb.ToString();
 		}
 
 		private void AddColumnToFormulaIfExists(StringBuilder sb, string columnHeader, int startRowNum)

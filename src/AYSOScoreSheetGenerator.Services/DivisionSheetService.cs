@@ -146,7 +146,7 @@ namespace AYSOScoreSheetGenerator.Services
 			}
 
 			// resize the columns
-			IEnumerable<Request> resizeRequests = _helper.CreateCellWidthRequests(divisionSheet, Configuration.TeamNameColumnWidth);
+			IEnumerable<Request> resizeRequests = _helper.CreateCellWidthRequests(divisionSheet.Properties.SheetId, Configuration.TeamNameColumnWidth);
 			await SheetsClient.ExecuteRequests(resizeRequests);
 		}
 

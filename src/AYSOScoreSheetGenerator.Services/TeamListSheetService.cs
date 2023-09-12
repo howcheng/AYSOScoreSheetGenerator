@@ -114,7 +114,7 @@ namespace AYSOScoreSheetGenerator.Services
 
 		private GoogleSheetCell CreateGoogleSheetCellForTeam(Team team, int rowIndex)
 		{
-			string teamName = team.TeamName;
+			string teamName = team.TeamName!;
 			if (Configuration.TeamNameTransformer != null)
 				teamName = Configuration.TeamNameTransformer(teamName);
 			GoogleSheetCell cell = new GoogleSheetCell

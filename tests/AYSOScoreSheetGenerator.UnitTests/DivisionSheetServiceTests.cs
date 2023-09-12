@@ -100,12 +100,12 @@ namespace AYSOScoreSheetGenerator.UnitTests
 			bool hasOtherRegions = (flags & TestFlags.HasInterregionalPlay) == TestFlags.HasInterregionalPlay;
 			bool evenNumberOfTeams = (flags & TestFlags.EvenNumberOfTeams) == TestFlags.EvenNumberOfTeams;
 
-			int counter = 0, counter2 = 0;
+			int counter = 0;
 			Fixture f = new Fixture();
 			List<Team> teams = f.Build<Team>()
 				.With(x => x.DivisionName, DIVISION)
 				.With(x => x.ProgramName, PROGRAM)
-				.With(x => x.TeamSheetCell, () => $"A{++counter2}")
+				.With(x => x.TeamSheetCell, () => $"A{++counter}")
 				.CreateMany(evenNumberOfTeams ? 4 : 5)
 				.ToList();
 			if (hasOtherRegions)
@@ -113,7 +113,7 @@ namespace AYSOScoreSheetGenerator.UnitTests
 				IEnumerable<Team> teams2 = f.Build<Team>()
 				.With(x => x.DivisionName, DIVISION)
 				.With(x => x.ProgramName, OTHER_REGION_PROGRAM)
-				.With(x => x.TeamSheetCell, () => $"A{++counter2}")
+				.With(x => x.TeamSheetCell, () => $"A{++counter}")
 				.CreateMany(10); // because there are usually a lot more of them than ours
 				teams.AddRange(teams2);
 			}
