@@ -35,12 +35,12 @@ namespace AYSOScoreSheetGenerator.Services
 				if (Configuration.SpreadsheetId == null)
 				{
 					await SheetsClient.CreateSpreadsheet(Configuration.SpreadsheetTitle);
-					Log.LogInformation("Created a new spreadsheet with ID {0}", SheetsClient.SpreadsheetId);
+					Log.LogInformation("Created a new spreadsheet with ID {id}", SheetsClient.SpreadsheetId);
 				}
 				else
 				{
 					Spreadsheet spreadsheet = await SheetsClient.LoadSpreadsheet(Configuration.SpreadsheetId);
-					Log.LogInformation("Using the existing spreadsheet with ID {0}", Configuration.SpreadsheetId);
+					Log.LogInformation("Using the existing spreadsheet with ID {id}", Configuration.SpreadsheetId);
 					if (spreadsheet.Properties.Title != Configuration.SpreadsheetTitle)
 						await SheetsClient.RenameSpreadsheet(Configuration.SpreadsheetTitle);
 				}
@@ -52,20 +52,22 @@ namespace AYSOScoreSheetGenerator.Services
 					await teamSheetSvc.BuildSheet(divisions);
 				}
 
-				foreach (KeyValuePair<string, IList<Team>> division in divisions)
+				string[] divisionNames = divisions.Keys.OrderBy(x => x).ToArray();
+				foreach (string divisionName in divisionNames)
 				{
-					IDivisionSheetService? divSheetSvc = _divisionSheetServices.SingleOrDefault(x => x.IsApplicableToDivision(division.Key));
+					IList<Team> divisionTeams = divisions[divisionName];
+					IDivisionSheetService? divSheetSvc = _divisionSheetServices.SingleOrDefault(x => x.IsApplicableToDivision(divisionName));
 					if (divSheetSvc == null)
-						throw new InvalidOperationException($"No {nameof(IDivisionSheetService)} instance set up for division {division.Key}");
+						throw new InvalidOperationException($"No {nameof(IDivisionSheetService)} instance set up for division {divisionName}");
 
-					await divSheetSvc.BuildSheet(division.Value);
+					await divSheetSvc.BuildSheet(divisionTeams);
 				}
 
 				Log.LogInformation("All done!");
 			}
 			catch (Exception ex)
 			{
-				Log.LogError(ex, "Uh-oh, something went wrong: {0}", ex.Message);
+				Log.LogError(ex, "Uh-oh, something went wrong: {message}", ex.Message);
 			}
 		}
 	}

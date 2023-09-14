@@ -70,7 +70,7 @@ namespace AYSOScoreSheetGenerator.Services
 				rowIndex++;
 
 				// team names
-				IEnumerable<Team> teams = division.Value;
+				IEnumerable<Team> teams = division.Value.OrderBy(x => x.TeamName);
 				foreach (Team team in teams)
 				{
 					GoogleSheetCell cell = CreateGoogleSheetCellForTeam(team, rowIndex);

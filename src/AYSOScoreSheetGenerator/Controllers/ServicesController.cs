@@ -1,4 +1,5 @@
-﻿using AYSOScoreSheetGenerator.Lib;
+﻿using System.Text.RegularExpressions;
+using AYSOScoreSheetGenerator.Lib;
 using AYSOScoreSheetGenerator.Models;
 using AYSOScoreSheetGenerator.Objects;
 using AYSOScoreSheetGenerator.Services;
@@ -14,6 +15,8 @@ namespace AYSOScoreSheetGenerator.Controllers
 	[ApiController]
 	public class ServicesController : ControllerBase
 	{
+		private static Regex s_reTeamName = new Regex(@"\d{2}U(B|G)(\.+)"); // 10UB01 - Smith
+
 		private readonly ISheetsClient _sheetsClient;
 		private readonly IOptionsMonitorCache<ScoreSheetConfiguration> _optionsMonitorCache;
 		private readonly IHubContext<LoggerHub, IScoreSheetLogger> _hub;
@@ -37,8 +40,17 @@ namespace AYSOScoreSheetGenerator.Controllers
 			_optionsMonitorCache.Clear();
 			model.SpreadsheetConfiguration.TeamNameTransformer = name =>
 			{
-				string[] arr = name.Split('-'); // the team names have the division name in them but that's redundant
-				return arr.Skip(1).Aggregate((s1, s2) => $"{s1.Trim()}-{s2.Trim()}"); // in case of a hyphenated last name
+				// 10UB01 - Smith
+				if (s_reTeamName.IsMatch(name))
+				{
+					GroupCollection groups = s_reTeamName.Match(name).Groups;
+					return groups[groups.Count - 1].Value;
+				}
+				return name;
+
+				// 10UB - 01 Smith
+				//string[] arr = name.Split('-'); // the team names have the division name in them but that's redundant
+				//return arr.Skip(1).Aggregate((s1, s2) => $"{s1.Trim()}-{s2.Trim()}"); // in case of a hyphenated last name
 			};
 			_optionsMonitorCache.TryAdd(string.Empty, model.SpreadsheetConfiguration);
 
@@ -142,10 +154,10 @@ namespace AYSOScoreSheetGenerator.Controllers
 		/// </summary>
 		private class PostedTeamReaderService : ITeamReaderService
 		{
-			Dictionary<string, IList<Team>> _teams;
+			IDictionary<string, IList<Team>> _teams;
 			public PostedTeamReaderService(Dictionary<string, IList<Team>> teams)
 			{
-				_teams = teams;
+				_teams = teams.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
 			}
 
 			public IDictionary<string, IList<Team>> GetTeams() => _teams;

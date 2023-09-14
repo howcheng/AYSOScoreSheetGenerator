@@ -329,17 +329,18 @@ class TeamEntry extends React.Component {
 
 class TeamList extends React.Component {
 	render() {
-		const teams = this.props.teams;
+		let teams = this.props.teams;
 		const divisionName = this.props.divisionName;
 		const lines = [];
 
+		teams.sort((a, b) => a.name > b.name ? 1 : -1);
 		teams.map((team, index) => {
 			lines.push(<TeamEntry key={index} team={team} />);
 		});
 
 		return (
 			<div className="card">
-				<div className="card-header">{divisionName}</div>
+				<div className="card-header">{divisionName} ({teams.length} teams)</div>
 				<div className="card-body">
 					<ul>
 						{lines}
