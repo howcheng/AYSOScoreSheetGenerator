@@ -12,9 +12,12 @@ namespace AYSOScoreSheetGenerator.Services
 
 		protected override string GenerateFormula(StandingsRequestCreatorConfig config)
 		{
-			string gamePtsCol = $"{_formulaGenerator.SheetHelper.GetColumnNameByHeader(Constants.HDR_GAME_PTS)}{config.StartGamesRowNum}";
+			string? gamePtsCol = _formulaGenerator.SheetHelper.GetColumnNameByHeader(Constants.HDR_GAME_PTS);
+			if (gamePtsCol == null)
+				throw new InvalidOperationException($"Column '{Constants.HDR_GAME_PTS}' not found in sheet helper");
+			
 			StringBuilder sb = new StringBuilder();
-			sb.AppendFormat("={0}", gamePtsCol);
+			sb.AppendFormat("={0}{1}", gamePtsCol, config.StartGamesRowNum);
 			AddColumnToFormulaIfExists(sb, Constants.HDR_REF_PTS, config.StartGamesRowNum);
 			AddColumnToFormulaIfExists(sb, Constants.HDR_VOL_PTS, config.StartGamesRowNum);
 			AddColumnToFormulaIfExists(sb, Constants.HDR_SPORTSMANSHIP_PTS, config.StartGamesRowNum);
@@ -24,7 +27,7 @@ namespace AYSOScoreSheetGenerator.Services
 
 		private void AddColumnToFormulaIfExists(StringBuilder sb, string columnHeader, int startRowNum)
 		{
-			string col = _formulaGenerator.SheetHelper.GetColumnNameByHeader(columnHeader);
+			string? col = _formulaGenerator.SheetHelper.GetColumnNameByHeader(columnHeader);
 			if (col == null)
 				return;
 
