@@ -65,10 +65,10 @@ namespace AYSOScoreSheetGenerator.UnitTests
 			Assert.Equal(config.Divisions.Count(), updateRequests.Count); // there should be one AppendRequest per division
 			Assert.All(updateRequests, x => Assert.All(x.Rows, r => Assert.Single(r))); // each row here should only be a single cell
 			Assert.All(updateRequests, x => Assert.Equal(QUANTITY + 2, x.Rows.Count)); // including header and blank value
-			// each team in the division should have a row
+			// each team in the division should have a row (teams are sorted by TeamName)
 			Assert.Collection(updateRequests,
-				x => Assert.Equal(divisionTeams.First().Value.Select(t => t.TeamName), x.Rows.Skip(1).Take(QUANTITY).SelectMany(r => r.Select(c => c.StringValue))), 
-				x => Assert.Equal(divisionTeams.Last().Value.Select(t => t.TeamName), x.Rows.Skip(1).Take(QUANTITY).SelectMany(r => r.Select(c => c.StringValue))));
+				x => Assert.Equal(divisionTeams.First().Value.OrderBy(t => t.TeamName).Select(t => t.TeamName), x.Rows.Skip(1).Take(QUANTITY).SelectMany(r => r.Select(c => c.StringValue))), 
+				x => Assert.Equal(divisionTeams.Last().Value.OrderBy(t => t.TeamName).Select(t => t.TeamName), x.Rows.Skip(1).Take(QUANTITY).SelectMany(r => r.Select(c => c.StringValue))));
 		}
 
 		[Fact]
